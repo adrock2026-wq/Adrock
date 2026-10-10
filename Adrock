@@ -1,0 +1,2881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ADRock Plant Operations & Invoicing Suite</title>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <style>
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { margin: 0; background: #0f172a; color: #f8fafc; padding-bottom: 70px; }
+
+    /* LOGIN OVERLAY */
+    #login_overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: #090d16; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;
+    }
+    .login-box {
+      background: #1e293b; border: 2px solid #f59e0b; border-radius: 12px;
+      padding: 24px; width: 100%; max-width: 360px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    .login-box h2 { color: #f59e0b; margin: 0 0 16px; font-size: 22px; font-weight: 900; letter-spacing: 1.5px; }
+    .login-box input, .login-box select {
+      width: 100%; padding: 12px; margin-bottom: 12px; background: #0b1329; border: 1px solid #334155;
+      border-radius: 6px; color: #fff; font-size: 13.5px; outline: none;
+    }
+
+    header {
+      background: linear-gradient(135deg, #0b1329, #172554);
+      padding: 12px 16px;
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 2px solid #f59e0b;
+    }
+    .brand-title { font-size: 20px; font-weight: 900; color: #f59e0b; letter-spacing: 1.5px; text-transform: uppercase; }
+    .header-controls { display: flex; gap: 8px; align-items: center; }
+    .lang-select { background: #0b1329; color: #f59e0b; border: 1px solid #f59e0b; padding: 5px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; outline: none; }
+    .btn-logout { background: #334155; color: #cbd5e1; border: 1px solid #475569; padding: 5px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; }
+
+    /* CSS TABS */
+    .tab-input { display: none; }
+    .nav-bar {
+      display: flex; overflow-x: auto; background: #0b1329; border-bottom: 1px solid #334155;
+      position: sticky; top: 0; z-index: 1000; padding: 6px; gap: 6px;
+    }
+    .nav-label {
+      flex: 1; min-width: 120px; padding: 10px 8px; border: 1px solid #334155; background: #1e293b;
+      color: #cbd5e1; font-size: 11.5px; font-weight: bold; border-radius: 6px; cursor: pointer; text-align: center; white-space: nowrap;
+    }
+    #tab1:checked ~ .nav-bar label[for="tab1"],
+    #tab2:checked ~ .nav-bar label[for="tab2"],
+    #tab3:checked ~ .nav-bar label[for="tab3"],
+    #tab4:checked ~ .nav-bar label[for="tab4"],
+    #tab5:checked ~ .nav-bar label[for="tab5"],
+    #tab6:checked ~ .nav-bar label[for="tab6"],
+    #tab7:checked ~ .nav-bar label[for="tab7"],
+    #tab8:checked ~ .nav-bar label[for="tab8"],
+    #tab9:checked ~ .nav-bar label[for="tab9"],
+    #tab10:checked ~ .nav-bar label[for="tab10"],
+    #tab11:checked ~ .nav-bar label[for="tab11"],
+    #tab12:checked ~ .nav-bar label[for="tab12"] {
+      background: #f59e0b; color: #0b1329; border-color: #f59e0b;
+    }
+
+    .container { max-width: 1180px; margin: 15px auto; padding: 0 12px; }
+    .page-section { display: none; }
+    #tab1:checked ~ .container #p_dash { display: block; }
+    #tab2:checked ~ .container #p_units { display: block; }
+    #tab3:checked ~ .container #p_fixed { display: block; }
+    #tab4:checked ~ .container #p_bill_gen { display: block; }
+    #tab5:checked ~ .container #p_att { display: block; }
+    #tab6:checked ~ .container #p_adv { display: block; }
+    #tab7:checked ~ .container #p_voucher { display: block; }
+    #tab8:checked ~ .container #p_payroll { display: block; }
+    #tab9:checked ~ .container #p_company_flow { display: block; }
+    #tab10:checked ~ .container #p_fpower { display: block; }
+    #tab11:checked ~ .container #p_store { display: block; }
+    #tab12:checked ~ .container #p_masters { display: block; }
+
+    .box { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+    .box h2 { margin: 0 0 14px; font-size: 14.5px; color: #f59e0b; border-bottom: 1px solid #334155; padding-bottom: 8px; text-transform: uppercase; }
+
+    .grid-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .card { background: #131f3f; border: 1px solid #1e293b; border-radius: 8px; padding: 12px; }
+    .card h3 { margin: 0 0 4px; font-size: 11px; color: #94a3b8; text-transform: uppercase; }
+    .card .val { font-size: 19px; font-weight: bold; color: #f59e0b; }
+
+    .filter-box { background: #0b1329; padding: 10px 12px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 12px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .filter-box label { font-size: 11.5px; font-weight: bold; color: #f59e0b; text-transform: uppercase; }
+
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 12px; }
+    .form-group { display: flex; flex-direction: column; }
+    .form-group label { font-size: 11px; font-weight: 600; margin-bottom: 4px; color: #cbd5e1; text-transform: uppercase; }
+    .form-group input, .form-group select { padding: 9px; background: #0b1329; border: 1px solid #334155; border-radius: 6px; color: #fff; font-size: 12.5px; outline: none; }
+
+    .btn { background: #f59e0b; color: #0b1329; border: none; padding: 11px 16px; border-radius: 6px; font-weight: 800; cursor: pointer; font-size: 12.5px; text-transform: uppercase; width: 100%; }
+    .btn-del { background: #ef4444; color: #fff; border: none; padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+    .btn-clear { background: #334155; color: #fff; border: none; padding: 6px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; }
+    .btn-sec { background: #38bdf8; color: #0b1329; border: none; padding: 8px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 12px; }
+
+    .table-wrap { width: 100%; overflow-x: auto; margin-top: 10px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { padding: 8px 10px; border: 1px solid #334155; text-align: left; }
+    th { background: #0b1329; color: #94a3b8; text-transform: uppercase; font-size: 11px; }
+    .num { text-align: right; }
+    .comp-tag { color: #38bdf8; font-weight: 600; }
+
+    .comp-section-header {
+      background: #131f3f; padding: 10px 14px; font-size: 13.5px; font-weight: 800;
+      color: #38bdf8; border-radius: 6px; margin-top: 15px; margin-bottom: 8px;
+      border-left: 4px solid #38bdf8; display: flex; justify-content: space-between;
+    }
+
+    /* PRINTABLE INVOICE / QUOTATION STYLES */
+    @media print {
+      body * { visibility: hidden !important; }
+      #printable_invoice_area, #printable_invoice_area * { visibility: visible !important; }
+      #printable_invoice_area {
+        position: absolute; left: 0; top: 0; width: 100%; background: #ffffff !important;
+        color: #000000 !important; padding: 25px; margin: 0; font-size: 13px;
+      }
+      #printable_invoice_area table, #printable_invoice_area th, #printable_invoice_area td {
+        border: 1px solid #334155 !important; color: #000000 !important;
+      }
+      #printable_invoice_area th { background: #f1f5f9 !important; }
+      .no-print { display: none !important; }
+    }
+
+    .inv-sheet {
+      background: #ffffff; color: #0f172a; border-radius: 8px; padding: 25px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3); margin-top: 15px; border: 1px solid #cbd5e1;
+    }
+    .inv-sheet table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12.5px; }
+    .inv-sheet th, .inv-sheet td { border: 1px solid #94a3b8; padding: 8px 10px; color: #0f172a; }
+    .inv-sheet th { background: #f8fafc; font-weight: 800; color: #1e293b; }
+    .inv-header { display: flex; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 15px; }
+  </style>
+</head>
+<body>
+
+  <!-- LOGIN OVERLAY -->
+  <div id="login_overlay">
+    <div class="login-box">
+      <h2>⚡ ADROCK LOGIN</h2>
+      <p style="font-size:12px; color:#94a3b8; margin-bottom:14px;">Select Account Type to Access</p>
+      
+      <select id="log_role" onchange="toggleLoginCompField()">
+        <option value="admin">👑 Main Admin (All Access)</option>
+        <option value="client">🏢 Client Portal (Company Login)</option>
+      </select>
+
+      <div id="log_comp_wrap" style="display:none;">
+        <label style="font-size:11px; color:#94a3b8; display:block; text-align:left; margin-bottom:4px;">SELECT COMPANY:</label>
+        <select id="log_comp"></select>
+      </div>
+
+      <input type="text" id="log_user" placeholder="User ID">
+      <input type="password" id="log_pass" placeholder="Password">
+      <button type="button" class="btn" onclick="checkAuth()">Login</button>
+      <div id="log_err" style="color:#ef4444; font-size:11.5px; margin-top:10px; display:none;">Invalid Credentials or Company Match!</div>
+    </div>
+  </div>
+
+  <!-- RADIO TABS (1 to 12) -->
+  <input type="radio" name="tabs" id="tab1" class="tab-input" checked>
+  <input type="radio" name="tabs" id="tab2" class="tab-input">
+  <input type="radio" name="tabs" id="tab3" class="tab-input">
+  <input type="radio" name="tabs" id="tab4" class="tab-input">
+  <input type="radio" name="tabs" id="tab5" class="tab-input">
+  <input type="radio" name="tabs" id="tab6" class="tab-input">
+  <input type="radio" name="tabs" id="tab7" class="tab-input">
+  <input type="radio" name="tabs" id="tab8" class="tab-input">
+  <input type="radio" name="tabs" id="tab9" class="tab-input">
+  <input type="radio" name="tabs" id="tab10" class="tab-input">
+  <input type="radio" name="tabs" id="tab11" class="tab-input">
+  <input type="radio" name="tabs" id="tab12" class="tab-input">
+
+  <header>
+    <div>
+      <div class="brand-title">⚡ ADROCK</div>
+      <div id="role_status_badge" style="font-size:10px; color:#10b981;">🟢 Live Cloud Sync</div>
+    </div>
+    <div class="header-controls">
+      <select id="global_lang_select" class="lang-select" onchange="changeLanguage(this.value)">
+        <option value="en">English</option>
+        <option value="ml">മലയാളം</option>
+        <option value="hi">हिन्दी</option>
+      </select>
+      <button type="button" class="btn-logout" onclick="logout()" id="lbl_logout">Lock App</button>
+    </div>
+  </header>
+
+  <!-- NAVIGATION TABS -->
+  <div class="nav-bar">
+    <label for="tab1" id="nav_dash" class="nav-label" onclick="refreshStats()">Dashboard</label>
+    <label for="tab2" id="nav_units" class="nav-label">Units Entry</label>
+    <label for="tab3" id="nav_fixed" class="nav-label">Fixed Billing</label>
+    <label for="tab4" id="nav_bill_gen" class="nav-label" style="border-color:#38bdf8; color:#38bdf8;">🧾 Invoice & Quotation</label>
+    <label for="tab5" id="nav_att" class="nav-label">📋 Daily Sheet</label>
+    <label for="tab6" id="nav_adv" class="nav-label">📒 Advance Ledger</label>
+    <label for="tab7" id="nav_voucher" class="nav-label">📑 Staff Voucher</label>
+    <label for="tab8" id="nav_payroll" class="nav-label">💰 Salary Payout</label>
+    <label for="tab9" id="nav_company_flow" class="nav-label">🏢 Company Ledger</label>
+    <label for="tab10" id="nav_fpower" class="nav-label" style="border-color:#f59e0b; color:#f59e0b;">⚡ F-Power</label>
+    <label for="tab11" id="nav_store" class="nav-label">📦 Store / Stock</label>
+    <label for="tab12" id="nav_masters" class="nav-label">⚙️ Masters & Users</label>
+  </div>
+
+  <div class="container">
+
+    <!-- 1. DASHBOARD -->
+    <div id="p_dash" class="page-section">
+      <div class="filter-box">
+        <label id="lbl_dash_month">Filter Month:</label>
+        <input type="month" id="dash_filter_month" onchange="refreshStats()">
+        <button type="button" class="btn-clear" onclick="clearDashFilter()" id="lbl_all_time">All Time</button>
+      </div>
+
+      <div class="grid-cards">
+        <div class="card" style="border: 2px solid #10b981; background: #0c2e26;">
+          <h3 style="color:#34d399; font-weight:bold;" id="c_net_balance">💵 Net In-Hand Balance</h3>
+          <div class="val" style="color: #34d399; font-size: 22px;" id="d_net_balance">₹0.00</div>
+        </div>
+        <div class="card">
+          <h3 id="c_tot_units">Total Units Produced</h3>
+          <div class="val" id="d_units">0.00</div>
+        </div>
+        <div class="card" style="border: 1px solid #10b981;">
+          <h3 style="color:#10b981;" id="c_cur_units">This Month Units</h3>
+          <div class="val" style="color: #10b981;" id="d_cur_month_units">0.00</div>
+        </div>
+        <div class="card">
+          <h3 id="c_gross_billed">Gross Billing (Without TDS)</h3>
+          <div class="val" style="color: #f59e0b;" id="d_billed_gross">₹0.00</div>
+        </div>
+        <div class="card">
+          <h3 id="c_tds_cut">Total TDS Deducted</h3>
+          <div class="val" style="color: #cbd5e1;" id="d_billed_tds">₹0.00</div>
+        </div>
+        <div class="card">
+          <h3 id="c_net_billed">Net Billing (With TDS)</h3>
+          <div class="val" style="color: #38bdf8;" id="d_billed_net">₹0.00</div>
+        </div>
+        <div class="card">
+          <h3 id="c_rec">Client Receipts (Inflow)</h3>
+          <div class="val" style="color: #10b981;" id="d_received">₹0.00</div>
+        </div>
+        <div class="card">
+          <h3 id="c_due">Pending Due</h3>
+          <div class="val" style="color: #ef4444;" id="d_pending">₹0.00</div>
+        </div>
+      </div>
+
+      <div class="box">
+        <h2 id="t_month_summary">📊 Month-Wise Billing & TDS Summary</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th id="th_m_month">Month</th>
+                <th class="num" style="color:#f59e0b;" id="th_m_units">Units Produced</th>
+                <th class="num" style="color:#f59e0b;" id="th_m_gross">Total Gross (₹)</th>
+                <th class="num" style="color:#cbd5e1;" id="th_m_tds">TDS Deducted (₹)</th>
+                <th class="num" style="color:#10b981; font-weight:bold;" id="th_m_net">Total Net (₹)</th>
+              </tr>
+            </thead>
+            <tbody id="dash_monthly_units_rows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="box">
+        <h2 id="t_comp_summary">Company Billing Summary (With & Without TDS)</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Company</th>
+                <th>Model</th>
+                <th class="num" style="color:#f59e0b;">Gross (₹)</th>
+                <th class="num" style="color:#cbd5e1;">TDS (₹)</th>
+                <th class="num" style="color:#38bdf8;">Net (₹)</th>
+                <th class="num" style="color:#10b981;">Received (₹)</th>
+                <th class="num" style="color:#ef4444;">Pending Due (₹)</th>
+              </tr>
+            </thead>
+            <tbody id="dash_companies_rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. UNITS ENTRY / BILLING -->
+    <div id="p_units" class="page-section">
+      <div class="box">
+        <h2 id="t_unit_entry">Record Daily Production Units</h2>
+        <div class="form-grid">
+          <div class="form-group"><label id="lbl_u_date">Date</label><input type="date" id="u_date"></div>
+          <div class="form-group"><label id="lbl_u_comp">Company / Plant</label><select id="u_comp"></select></div>
+          <div class="form-group"><label id="lbl_u_qty">Units Produced</label><input type="number" id="u_val" placeholder="e.g. 150" oninput="runUnitMath()"></div>
+          
+          <div class="form-group admin-only-field"><label id="lbl_u_rate">Rate / Unit (₹)</label><input type="number" id="u_rate" value="60" oninput="runUnitMath()"></div>
+          
+          <div class="form-group admin-only-field">
+            <label>GST Applied</label>
+            <select id="u_gst_pct" onchange="runUnitMath()">
+              <option value="0">0% (Non-GST / Exempted)</option>
+              <option value="5">5% GST</option>
+              <option value="12">12% GST</option>
+              <option value="18">18% GST</option>
+            </select>
+          </div>
+          
+          <div class="form-group admin-only-field"><label id="lbl_u_gross">Gross Amount (Without TDS)</label><input type="text" id="u_gross" readonly style="background:#0b1329; color:#f59e0b; font-weight:bold;"></div>
+          <div class="form-group admin-only-field"><label id="lbl_u_net">Net Payable (1% TDS Cut)</label><input type="text" id="u_net" readonly style="background:#0b1329; color:#38bdf8; font-weight:bold;"></div>
+          
+          <div class="form-group" style="grid-column: 1 / -1;"><label id="lbl_u_notes">Comments / Shift Remarks</label><input type="text" id="u_notes" placeholder="Shift or remarks"></div>
+        </div>
+        <button type="button" class="btn" onclick="saveUnit()" id="btn_save_unit">Save Daily Unit Entry</button>
+      </div>
+
+      <div class="box admin-only-field" id="units_history_box">
+        <h2 id="t_unit_hist">Units History (Chronological Order)</h2>
+        <div class="filter-box">
+          <label>Filter Month:</label>
+          <input type="month" id="u_filter_month" onchange="renderUnitsTable()">
+          <button type="button" class="btn-clear" onclick="document.getElementById('u_filter_month').value=''; renderUnitsTable();">Show All</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Company</th><th class="num">Units</th><th class="num" style="color:#f59e0b;">Gross (₹)</th><th class="num" style="color:#38bdf8;">Net (₹)</th><th>Notes</th><th>Action</th></tr></thead>
+            <tbody id="units_rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. FIXED BILLING -->
+    <div id="p_fixed" class="page-section">
+      <div class="box">
+        <h2>Record Fixed Monthly Billing</h2>
+        <div class="form-grid">
+          <div class="form-group"><label>Date</label><input type="date" id="f_date"></div>
+          <div class="form-group"><label>Company / Plant</label><select id="f_comp"></select></div>
+          <div class="form-group"><label>Gross Amount (Without TDS ₹)</label><input type="number" id="f_gross" oninput="runFixedMath()"></div>
+          <div class="form-group"><label>TDS %</label><input type="number" id="f_tds_pct" value="1" oninput="runFixedMath()"></div>
+          <div class="form-group"><label>Net Amount (With TDS ₹)</label><input type="text" id="f_net" readonly style="background:#0b1329; color:#38bdf8; font-weight:bold;"></div>
+          <div class="form-group" style="grid-column: 1 / -1;"><label>Description</label><input type="text" id="f_notes" placeholder="Monthly Retainer Details"></div>
+        </div>
+        <button type="button" class="btn" onclick="saveFixed()">Save Fixed Entry</button>
+      </div>
+
+      <div class="box">
+        <h2>Fixed Billing History</h2>
+        <div class="filter-box">
+          <label>Filter Month:</label>
+          <input type="month" id="f_filter_month" onchange="renderFixedTable()">
+          <button type="button" class="btn-clear" onclick="document.getElementById('f_filter_month').value=''; renderFixedTable();">Show All</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Company</th><th class="num" style="color:#f59e0b;">Gross (₹)</th><th class="num" style="color:#38bdf8;">Net (₹)</th><th>Notes</th><th>Action</th></tr></thead>
+            <tbody id="fixed_rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. 🧾 INVOICE & QUOTATION BUILDER (ACTIVE TAB) -->
+    <div id="p_bill_gen" class="page-section">
+      <div class="box no-print" style="border:1px solid #38bdf8;">
+        <h2 style="color:#38bdf8;">🧾 Premium Tax Invoice & Quotation Generator</h2>
+        <p style="font-size:11.5px; color:#94a3b8; margin-top:-6px;">
+          ഇൻവോയ്സ് (Invoice) അല്ലെങ്കിൽ കൊട്ടേഷൻ (Quotation) തയ്യാറാക്കാം. വിവരങ്ങൾ നൽകി താഴെയുള്ള ബട്ടൺ ക്ലിക്ക് ചെയ്ത് പ്രിന്റ് എടുക്കുകയോ PDF ആയി സേവ് ചെയ്യുകയോ ചെയ്യാം.
+        </p>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Document Type</label>
+            <select id="gen_doc_type" onchange="refreshInvoiceTemplate()">
+              <option value="TAX INVOICE">TAX INVOICE (ടാക്സ് ഇൻവോയ്സ്)</option>
+              <option value="QUOTATION">QUOTATION (കൊട്ടേഷൻ / എസ്റ്റിമേറ്റ്)</option>
+              <option value="PROFORMA INVOICE">PROFORMA INVOICE (പ്രൊഫോർമ)</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Doc / Ref No</label><input type="text" id="gen_inv_no" value="ADR/2026/001" oninput="refreshInvoiceTemplate()"></div>
+          <div class="form-group"><label>Issue Date</label><input type="date" id="gen_inv_date" onchange="refreshInvoiceTemplate()"></div>
+          <div class="form-group"><label>Client Company</label><select id="gen_client_comp" onchange="onGenCompChange()"></select></div>
+          <div class="form-group"><label>Client GSTIN (Optional)</label><input type="text" id="gen_client_gst" placeholder="32AAAAA0000A1Z5" oninput="refreshInvoiceTemplate()"></div>
+          <div class="form-group" style="grid-column: span 2;"><label>Client Site / Address</label><input type="text" id="gen_client_addr" placeholder="Crusher Site Address, Kerala" oninput="refreshInvoiceTemplate()"></div>
+        </div>
+
+        <h3 style="font-size:12px; color:#f59e0b; margin:15px 0 8px; text-transform:uppercase;">Line Items (വർക്ക് / സർവീസ് വിവരങ്ങൾ)</h3>
+        <div id="gen_line_items">
+          <!-- Row 1 -->
+          <div class="form-grid item-row" style="margin-bottom:8px;">
+            <div class="form-group" style="grid-column: span 2;"><label>Item / Service Description</label><input type="text" class="it-desc" value="Plant Operation & Crusher Mechanical Maintenance" oninput="refreshInvoiceTemplate()"></div>
+            <div class="form-group"><label>HSN / SAC</label><input type="text" class="it-hsn" value="9987" oninput="refreshInvoiceTemplate()"></div>
+            <div class="form-group"><label>Qty / Units</label><input type="number" class="it-qty" value="1" oninput="refreshInvoiceTemplate()"></div>
+            <div class="form-group"><label>Rate (₹)</label><input type="number" class="it-rate" value="50000" oninput="refreshInvoiceTemplate()"></div>
+          </div>
+        </div>
+        <button type="button" class="btn-sec" onclick="addInvoiceItemRow()">+ Add Another Item Row</button>
+
+        <div class="form-grid" style="margin-top:14px;">
+          <div class="form-group">
+            <label>GST Rate</label>
+            <select id="gen_gst_rate" onchange="refreshInvoiceTemplate()">
+              <option value="18">18% (CGST 9% + SGST 9%)</option>
+              <option value="12">12% (CGST 6% + SGST 6%)</option>
+              <option value="5">5% (CGST 2.5% + SGST 2.5%)</option>
+              <option value="0">0% (Nil / Non-GST)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>TDS Deduction Option</label>
+            <select id="gen_tds_apply" onchange="refreshInvoiceTemplate()">
+              <option value="1">1% TDS (Sec 194C)</option>
+              <option value="2">2% TDS</option>
+              <option value="0">0% (No TDS Cut)</option>
+            </select>
+          </div>
+          <div class="form-group" style="grid-column: span 2;"><label>Bank Account / Payment Terms to Print</label><input type="text" id="gen_bank_terms" value="HDFC Bank | A/C: 502000XXXXXX | IFSC: HDFC000XXXX | Terms: Payment within 15 days" oninput="refreshInvoiceTemplate()"></div>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:14px;">
+          <button type="button" class="btn" style="background:#10b981; color:#fff;" onclick="window.print()">🖨️ Print / Save as PDF (ഡൗൺലോഡ് ചെയ്യുക)</button>
+        </div>
+      </div>
+
+      <!-- PREVIEW & PRINTABLE TEMPLATE -->
+      <div id="printable_invoice_area">
+        <div class="inv-sheet">
+          <div class="inv-header">
+            <div>
+              <div style="font-size:24px; font-weight:900; color:#0f172a; letter-spacing:1px;">⚡ ADROCK</div>
+              <div style="font-size:11.5px; color:#475569; font-weight:600;">Plant Maintenance & Mechanical Contracting Services</div>
+              <div style="font-size:11px; color:#64748b; margin-top:3px;">Manjeri, Malappuram, Kerala - 676121 | Phone: +91 9XXXX XXXXX</div>
+              <div style="font-size:11px; color:#64748b;">GSTIN: 32XXXXX0000X1ZX | PAN: XXXXX0000X</div>
+            </div>
+            <div style="text-align:right;">
+              <div id="p_doc_type" style="font-size:18px; font-weight:900; color:#1e293b; border:2px solid #1e293b; padding:4px 10px; border-radius:4px; display:inline-block;">TAX INVOICE</div>
+              <div style="font-size:12px; margin-top:6px;"><strong>Doc No:</strong> <span id="p_inv_no">ADR/2026/001</span></div>
+              <div style="font-size:12px;"><strong>Date:</strong> <span id="p_inv_date">10/10/2026</span></div>
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; margin-bottom:15px; font-size:12px;">
+            <div style="width:55%;">
+              <div style="font-size:11px; text-transform:uppercase; color:#64748b; font-weight:bold;">BILLED TO / CLIENT:</div>
+              <div style="font-size:14px; font-weight:800; color:#0f172a;" id="p_client_name">Ernad Machine Materials</div>
+              <div id="p_client_addr" style="color:#334155;">Plant Site, Kerala</div>
+              <div id="p_client_gst_wrap" style="margin-top:2px;"><strong>GSTIN:</strong> <span id="p_client_gst">-</span></div>
+            </div>
+            <div style="width:40%; text-align:right; font-size:12px; color:#334155;">
+              <div><strong>Service Type:</strong> Crusher Operations & Plant AMC</div>
+              <div><strong>Place of Supply:</strong> Kerala (32)</div>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th style="width:35px;">#</th>
+                <th>Description of Goods / Services</th>
+                <th style="width:75px;">HSN/SAC</th>
+                <th class="num" style="width:65px;">Qty</th>
+                <th class="num" style="width:100px;">Rate (₹)</th>
+                <th class="num" style="width:110px;">Amount (₹)</th>
+              </tr>
+            </thead>
+            <tbody id="p_items_tbody"></tbody>
+            <tfoot>
+              <tr>
+                <td colspan="5" style="text-align:right; font-weight:bold;">Taxable Subtotal (സബ്‌ടോട്ടൽ):</td>
+                <td class="num" style="font-weight:bold;" id="p_subtotal">₹0.00</td>
+              </tr>
+              <tr id="p_gst_row">
+                <td colspan="5" style="text-align:right;">GST (<span id="p_gst_pct">18</span>%):</td>
+                <td class="num" id="p_gst_amt">₹0.00</td>
+              </tr>
+              <tr id="p_tds_row">
+                <td colspan="5" style="text-align:right; color:#dc2626;">Less: TDS Deduction (<span id="p_tds_pct">1</span>%):</td>
+                <td class="num" style="color:#dc2626;" id="p_tds_amt">-₹0.00</td>
+              </tr>
+              <tr style="background:#f8fafc; font-size:14px;">
+                <td colspan="5" style="text-align:right; font-weight:900;">NET PAYABLE TOTAL (ആകെ തുക):</td>
+                <td class="num" style="font-weight:900; color:#047857;" id="p_final_total">₹0.00</td>
+              </tr>
+            </tfoot>
+          </table>
+
+          <div style="margin-top:20px; display:flex; justify-content:space-between; align-items:flex-end;">
+            <div style="width:60%; font-size:11px; color:#475569;">
+              <div><strong>Bank & Payment Details:</strong></div>
+              <div id="p_bank_details">HDFC Bank | A/C: 502000XXXXXX | IFSC: HDFC000XXXX</div>
+              <div style="margin-top:6px; font-style:italic;">Terms: This is a computer generated document. Goods/Services once rendered are non-disputable.</div>
+            </div>
+            <div style="text-align:center; width:35%;">
+              <div style="font-size:11.5px; font-weight:bold; color:#0f172a;">For ADRock Plant Operations</div>
+              <div style="height:45px;"></div>
+              <div style="font-size:11px; border-top:1px solid #94a3b8; padding-top:4px;">Authorised Signatory</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. DAILY ATTENDANCE SHEET & INDIVIDUAL SEARCH -->
+    <div id="p_att" class="page-section">
+      <div class="box">
+        <h2 id="t_daily_att_title">📋 Daily Attendance Sheet (Staff 1, 2, 3...)</h2>
+        <div class="filter-box">
+          <label id="lbl_att_date">Select Date:</label>
+          <input type="date" id="daily_att_date" onchange="loadDailyAttendanceSheet()">
+          <button type="button" class="btn-clear" onclick="setTodayDate()" id="lbl_att_today">Today</button>
+        </div>
+        <div id="daily_sheet_container"></div>
+        <button type="button" class="btn" style="margin-top:16px;" onclick="saveDailyAttendanceSheet()" id="btn_save_daily_att">💾 Save Full Day Attendance Sheet</button>
+      </div>
+
+      <div class="box" style="border: 1px solid #38bdf8;">
+        <h2 style="color: #38bdf8;" id="t_indiv_title">🔍 Individual Staff Attendance Search</h2>
+        <div class="filter-box">
+          <div style="flex:1.5; min-width:180px;">
+            <label id="lbl_indiv_staff">Select Staff Member:</label>
+            <select id="indiv_staff_select" style="width:100%; padding:8px; background:#1e293b; color:#fff; border:1px solid #334155; border-radius:4px;"></select>
+          </div>
+          <div style="flex:1; min-width:140px;">
+            <label id="lbl_indiv_month">Month:</label>
+            <input type="month" id="indiv_staff_month" style="width:100%; padding:7px; background:#1e293b; color:#fff; border:1px solid #334155; border-radius:4px;">
+          </div>
+          <button type="button" class="btn" style="flex:0.8; min-width:130px; margin-top:18px;" onclick="searchIndividualStaffAttendance()" id="btn_show_history">Show History</button>
+        </div>
+
+        <div id="indiv_result_container" style="display:none; margin-top:14px;">
+          <div class="grid-cards" style="margin-bottom:12px;">
+            <div class="card" style="border:1px solid #10b981;">
+              <h3 style="color:#10b981;" id="lbl_card_duty">Total Duty Days</h3>
+              <div class="val" style="color:#10b981;" id="indiv_tot_duty">0</div>
+            </div>
+            <div class="card" style="border:1px solid #f59e0b;">
+              <h3 style="color:#f59e0b;" id="lbl_card_ot">Total OT Hours</h3>
+              <div class="val" style="color:#f59e0b;" id="indiv_tot_ot">0 hrs</div>
+            </div>
+            <div class="card" style="border:1px solid #ef4444;">
+              <h3 style="color:#ef4444;" id="lbl_card_absent">Absent Days</h3>
+              <div class="val" style="color:#ef4444;" id="indiv_tot_absent">0</div>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:40px;">#</th>
+                  <th>Date</th>
+                  <th>Company</th>
+                  <th>Duty Status</th>
+                  <th class="num">OT Hours</th>
+                  <th>Work Remarks</th>
+                </tr>
+              </thead>
+              <tbody id="indiv_att_rows"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. ADVANCE LEDGER -->
+    <div id="p_adv" class="page-section">
+      <div class="box">
+        <h2>Issue Staff Advance (Ledger Entry)</h2>
+        <div class="form-grid">
+          <div class="form-group"><label>Date</label><input type="date" id="adv_date"></div>
+          <div class="form-group"><label>Staff Member</label><select id="adv_staff_select" onchange="onAdvStaffChange()"></select></div>
+          <div class="form-group"><label>Company / Plant</label><select id="adv_comp"></select></div>
+          <div class="form-group"><label>Advance Amount (₹)</label><input type="number" id="adv_amt" placeholder="Amount"></div>
+          <div class="form-group">
+            <label>Payment Mode</label>
+            <select id="adv_mode">
+              <option value="Cash">Cash</option>
+              <option value="UPI / Online">UPI / Online</option>
+              <option value="Bank Transfer">Bank Transfer</option>
+            </select>
+          </div>
+          <div class="form-group" style="grid-column: 1 / -1;"><label>Purpose</label><input type="text" id="adv_notes" placeholder="Reason for advance"></div>
+        </div>
+        <button type="button" class="btn" onclick="saveAdvance()">Record Advance</button>
+      </div>
+
+      <div class="box">
+        <h2>Staff Advance Ledger View</h2>
+        <div class="filter-box">
+          <label>Filter Staff:</label>
+          <select id="adv_filter_staff" onchange="renderAdvanceTable()"><option value="">-- All Staff --</option></select>
+          <label>Month:</label>
+          <input type="month" id="adv_filter_month" onchange="renderAdvanceTable()">
+          <button type="button" class="btn-clear" onclick="document.getElementById('adv_filter_month').value=''; renderAdvanceTable();">Reset</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Staff Name</th><th>Company</th><th>Mode</th><th>Purpose</th><th class="num" style="color:#ef4444;">Debit / Advance (₹)</th><th>Action</th></tr></thead>
+            <tbody id="advance_rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. CLEAN STAFF VOUCHER -->
+    <div id="p_voucher" class="page-section">
+      <div class="box">
+        <h2>📑 Monthly Staff Attendance & Salary Due Voucher</h2>
+        <div class="filter-box">
+          <label>Voucher Month:</label>
+          <input type="month" id="vouch_month" onchange="renderStaffVoucher()">
+          <label>Company:</label>
+          <select id="vouch_comp" onchange="renderStaffVoucher()"><option value="">-- All Companies --</option></select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Staff Name</th>
+                <th>Company</th>
+                <th>Role</th>
+                <th class="num">Rate / Salary (₹)</th>
+                <th class="num" style="color:#38bdf8;">Duty Days</th>
+                <th class="num">OT Hours</th>
+                <th class="num" style="color:#f59e0b;">OT Earned (₹)</th>
+                <th class="num" style="color:#ef4444;">Adv Taken (₹)</th>
+                <th class="num" style="color:#10b981; font-weight:bold; font-size:13.5px;">Net Payable (Due ₹)</th>
+              </tr>
+            </thead>
+            <tbody id="voucher_rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 8. SALARY PAYOUT -->
+    <div id="p_payroll" class="page-section">
+      <div class="box">
+        <h2>Monthly Salary Payout Settlement</h2>
+        <div class="form-grid">
+          <div class="form-group"><label>Month</label><input type="month" id="s_month" onchange="pullStaffMonthData()"></div>
+          <div class="form-group"><label>Select Staff Member</label><select id="s_staff_select" onchange="pullStaffMonthData()"></select></div>
+          <div class="form-group"><label>Company / Plant</label><select id="s_comp"></select></div>
+          <div class="form-group"><label>Wage Type</label><input type="text" id="s_type" readonly style="background:#0b1329;"></div>
+          <div class="form-group"><label>Base Rate / Pay (₹)</label><input type="number" id="s_rate" oninput="calcSalary()"></div>
+          <div class="form-group"><label>Duty Days</label><input type="number" id="s_days" step="0.5" oninput="calcSalary()"></div>
+          <div class="form-group"><label>OT Hours</label><input type="number" id="s_ot_hours" readonly style="background:#0b1329;"></div>
+          <div class="form-group"><label>OT Pay Amount (₹)</label><input type="number" id="s_ot_pay" value="0" oninput="calcSalary()"></div>
+          <div class="form-group"><label>Advance Deducted (₹)</label><input type="number" id="s_tot_adv" value="0" readonly style="background:#0b1329; color:#ef4444; font-weight:bold;"></div>
+          <div class="form-group"><label>Net Payable (₹)</label><input type="text" id="s_net_pay" readonly style="background:#0b1329; color:#10b981; font-weight:bold; font-size:15px;"></div>
+          <div class="form-group">
+            <label>Payment Method</label>
+            <select id="s_pay_mode">
+              <option value="Bank Transfer">Bank Transfer (NEFT/IMPS)</option>
+              <option value="UPI / GPay">UPI / GPay / PhonePe</option>
+              <option value="Cash">Cash in Hand</option>
+              <option value="Cheque">Cheque</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Transaction Ref / UTR / Remarks</label><input type="text" id="s_notes" placeholder="Txn ID or remarks"></div>
+        </div>
+        <button type="button" class="btn" onclick="savePayrollSettlement()">Record Salary Settlement</button>
+      </div>
+
+      <div class="box">
+        <h2>Settlement Statements</h2>
+        <div class="filter-box">
+          <label>Filter Month:</label>
+          <input type="month" id="filter_payroll_month" onchange="renderPayrollTable()">
+          <button type="button" class="btn-clear" onclick="document.getElementById('filter_payroll_month').value=''; renderPayrollTable();">Show All</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Month</th><th>Company</th><th>Staff Name</th><th class="num">Days</th><th class="num">Gross (₹)</th><th class="num" style="color:#ef4444;">Adv Cut (₹)</th><th class="num" style="color:#10b981;">Net Paid (₹)</th><th>Payment Mode</th><th>Ref / Notes</th><th>Action</th></tr></thead>
+            <tbody id="payroll_rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 9. COMPANY LEDGER & EXPENSES -->
+    <div id="p_company_flow" class="page-section">
+      <div class="box">
+        <h2>💵 Client Payment Inflow</h2>
+        <div class="form-grid">
+          <div class="form-group"><label>Date Received</label><input type="date" id="cr_date"></div>
+          <div class="form-group"><label>Company / Client</label><select id="cr_comp"></select></div>
+          <div class="form-group"><label>Amount Received (₹)</label><input type="number" id="cr_amt" placeholder="Amount In"></div>
+          <div class="form-group">
+            <label>Received Mode</label>
+            <select id="cr_mode">
+              <option value="Bank Transfer">Bank Transfer</option>
+              <option value="Cheque">Cheque</option>
+              <option value="UPI / Online">UPI / Online</option>
+              <option value="Cash">Cash</option>
+            </select>
+          </div>
+          <div class="form-group" style="grid-column: 1 / -1;"><label>UTR / Cheque No / Remarks</label><input type="text" id="cr_notes" placeholder="Invoice reference details"></div>
+        </div>
+        <button type="button" class="btn" onclick="saveClientReceipt()">Record Client Receipt</button>
+      </div>
+
+      <div class="box">
+        <h2>💸 Site Operational Expenses</h2>
+        <div class="form-grid">
+          <div class="form-group"><label>Date</label><input type="date" id="e_date"></div>
+          <div class="form-group"><label>Company / Plant</label><select id="e_comp"></select></div>
+          <div class="form-group">
+            <label>Category</label>
+            <select id="e_cat">
+              <option value="Food & Mess">Food & Mess</option>
+              <option value="Travel & Fuel">Travel & Fuel</option>
+              <option value="Medical & Health">Medical & Safety</option>
+              <option value="Machinery Parts / Spares">Machinery Parts / Spares</option>
+              <option value="Electricity / Fuel">Plant Electricity / Diesel</option>
+              <option value="Extra Cash">Extra Site Cash</option>
+              <option value="Other">Other Expenses</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Amount (₹)</label><input type="number" id="e_amt" placeholder="Amount Out"></div>
+          <div class="form-group" style="grid-column: 1 / -1;"><label>Expense Details</label><input type="text" id="e_desc" placeholder="Details of expense"></div>
+        </div>
+        <button type="button" class="btn" onclick="saveExp()">Record Site Expense</button>
+      </div>
+
+      <div class="box">
+        <h2>🏢 Company Billed vs Received vs Pending Due</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Company Name</th>
+                <th>Billing Model</th>
+                <th class="num" style="color:#f59e0b;">Gross Billed (₹)</th>
+                <th class="num" style="color:#cbd5e1;">TDS Cut (₹)</th>
+                <th class="num" style="color:#38bdf8;">Net Billed (₹)</th>
+                <th class="num" style="color:#10b981;">Total Received (₹)</th>
+                <th class="num" style="color:#ef4444; font-weight:bold;">Balance Pending Due (₹)</th>
+              </tr>
+            </thead>
+            <tbody id="company_summary_rows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="box">
+        <h2>Client Receipts Register</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Company</th><th>Mode</th><th class="num" style="color:#10b981;">Amount (₹)</th><th>Remarks</th><th>Action</th></tr></thead>
+            <tbody id="receipts_rows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="box">
+        <h2>Expenses Register</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Company</th><th>Category</th><th>Details</th><th class="num" style="color:#ef4444;">Amount (₹)</th><th>Action</th></tr></thead>
+            <tbody id="expenses_rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 10. ⚡ F-POWER & PARTNERS -->
+    <div id="p_fpower" class="page-section">
+      <div class="box" style="border: 1px solid #f59e0b;">
+        <h2 style="color: #f59e0b;">⚡ F-POWER : Company-Wise Partner Profit Shares & Ledger</h2>
+        <div class="grid-cards">
+          <div class="card" style="border:1px solid #10b981; background:#0c2e26;">
+            <h3 style="color:#34d399;">Total Capital Invested</h3>
+            <div class="val" style="color:#34d399;" id="fp_stat_in">₹0.00</div>
+          </div>
+          <div class="card" style="border:1px solid #ef4444; background:#2e111a;">
+            <h3 style="color:#f87171;">Total Transferred to Partners</h3>
+            <div class="val" style="color:#f87171;" id="fp_stat_out">₹0.00</div>
+          </div>
+          <div class="card" style="border:1px solid #38bdf8; background:#0e243a;">
+            <h3 style="color:#38bdf8;">Auto-Calculated Total Profit Entitlement</h3>
+            <div class="val" style="color:#38bdf8;" id="fp_stat_net">₹0.00</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="box">
+        <h2>🤝 Register Partner & Assign Company Share</h2>
+        <div class="form-grid">
+          <div class="form-group"><label>Partner Name</label><input type="text" id="new_part_name" placeholder="Full Name"></div>
+          <div class="form-group"><label>Associated Company</label><select id="new_part_comp"></select></div>
+          <div class="form-group"><label>Profit Share %</label><input type="number" id="new_part_share" placeholder="e.g. 10%, 25%"></div>
+          <div class="form-group"><label>Capital Invested (₹)</label><input type="number" id="new_part_capital" placeholder="0 if no capital" value="0"></div>
+          <div class="form-group">
+            <label>Partner Role</label>
+            <select id="new_part_type">
+              <option value="Profit-Sharing (No Investment)">Profit-Sharing (No Investment)</option>
+              <option value="Capital Investor">Capital Investor</option>
+              <option value="Capital + Profit Share">Capital Investor + Profit Share</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Phone / Contact</label><input type="text" id="new_part_phone" placeholder="Phone"></div>
+        </div>
+        <button type="button" class="btn" onclick="addPartner()">+ Add Partner</button>
+      </div>
+
+      <div class="box">
+        <h2>👥 Partners Profit-Share Summary</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Partner Name</th>
+                <th>Company</th>
+                <th class="num" style="color:#f59e0b; font-weight:bold;">Profit Share %</th>
+                <th class="num" style="color:#38bdf8;">Company Net Profit (₹)</th>
+                <th class="num" style="color:#10b981; font-weight:bold;">Auto Profit Share (₹)</th>
+                <th class="num" style="color:#f87171;">Transferred Out (₹)</th>
+                <th class="num" style="color:#38bdf8; font-weight:bold;">Net Payable Due (₹)</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="partners_summary_rows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="box">
+        <h2>💳 Record Transaction / Transfer to Partner</h2>
+        <div class="form-grid">
+          <div class="form-group"><label>Date</label><input type="date" id="fp_date"></div>
+          <div class="form-group"><label>Select Partner & Company</label><select id="fp_partner_select"></select></div>
+          <div class="form-group">
+            <label>Transaction Type</label>
+            <select id="fp_type">
+              <option value="TRANSFER_OUT">🔴 Profit-Share Transfer / Drawing</option>
+              <option value="FUND_IN">🟢 Additional Capital In</option>
+              <option value="OWNER_EXPENSE">🟠 Partner Direct Expense</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Amount (₹)</label><input type="number" id="fp_amt" placeholder="Amount"></div>
+          <div class="form-group">
+            <label>Mode</label>
+            <select id="fp_mode">
+              <option value="Bank Transfer (NEFT/RTGS)">Bank Transfer</option>
+              <option value="UPI / GPay">UPI / GPay</option>
+              <option value="Cash">Cash</option>
+              <option value="Cheque">Cheque</option>
+            </select>
+          </div>
+          <div class="form-group" style="grid-column: 1 / -1;"><label>Description</label><input type="text" id="fp_desc" placeholder="Details"></div>
+        </div>
+        <button type="button" class="btn" onclick="saveFPowerEntry()">Save Transaction</button>
+      </div>
+
+      <div class="box">
+        <h2>⚡ F-Power Statement</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Date</th>
+                <th>Partner & Company</th>
+                <th>Type</th>
+                <th>Mode</th>
+                <th class="num" style="color:#34d399;">Fund In (₹)</th>
+                <th class="num" style="color:#f87171;">Transferred Out (₹)</th>
+                <th>Description</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="fpower_rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 11. STORE / STOCK -->
+    <div id="p_store" class="page-section">
+      <div class="box">
+        <h2>Add Stock In / Stock Out (Usage)</h2>
+        <div class="form-grid">
+          <div class="form-group"><label>Date</label><input type="date" id="st_date"></div>
+          <div class="form-group"><label>Company / Plant</label><select id="st_comp"></select></div>
+          <div class="form-group">
+            <label>Action</label>
+            <select id="st_type">
+              <option value="IN">Stock In (Purchase/Received)</option>
+              <option value="OUT">Stock Out (Used on Crusher)</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Item Name</label><input type="text" id="st_item" placeholder="Jaw Plate, Belt, Grease..."></div>
+          <div class="form-group"><label>Quantity</label><input type="number" id="st_qty" placeholder="Quantity"></div>
+          <div class="form-group"><label>Unit</label><select id="st_unit"><option value="Nos">Nos</option><option value="Ltr">Liters</option><option value="Kg">Kg</option><option value="Meter">Meters</option><option value="Set">Set</option></select></div>
+          <div class="form-group"><label>Cost (₹)</label><input type="number" id="st_cost" placeholder="Optional"></div>
+          <div class="form-group" style="grid-column: 1 / -1;"><label>Machine / Remarks</label><input type="text" id="st_notes" placeholder="Used on Primary Jaw, Conveyor 3..."></div>
+        </div>
+        <button type="button" class="btn" onclick="saveStoreItem()">Save Stock Entry</button>
+      </div>
+
+      <div class="box">
+        <h2>Live Balance in Stock</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Company</th><th>Item Name</th><th class="num">Total In</th><th class="num">Total Used</th><th class="num" style="color:#f59e0b;">Balance In Stock</th><th>Unit</th></tr></thead>
+            <tbody id="inventory_rows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="box">
+        <h2>Stock Movement Log</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Company</th><th>Type</th><th>Item</th><th class="num">Qty</th><th class="num">Cost (₹)</th><th>Remarks</th><th>Action</th></tr></thead>
+            <tbody id="store_log_rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 12. MASTERS, CLIENT USERS, LOGIN LOGS & PASSWORDS -->
+    <div id="p_masters" class="page-section">
+      <div class="box">
+        <h2>🔐 Login Activity & Access History</h2>
+        <div class="grid-cards" style="margin-bottom:12px;">
+          <div class="card" style="border:1px solid #38bdf8;">
+            <h3 style="color:#38bdf8;">Total Logins Count</h3>
+            <div class="val" id="log_total_count">0</div>
+          </div>
+          <div class="card" style="border:1px solid #10b981;">
+            <h3 style="color:#10b981;">Last Logged User</h3>
+            <div class="val" style="font-size:15px; color:#10b981;" id="log_last_user">-</div>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Login Date & Time</th>
+                <th>User ID</th>
+                <th>Name</th>
+                <th>Role</th>
+                <th>Assigned Company</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="login_logs_rows"></tbody>
+          </table>
+        </div>
+        <button type="button" class="btn-clear" style="margin-top:10px; background:#ef4444;" onclick="clearAllLoginLogs()">Clear All Login Logs</button>
+      </div>
+
+      <div class="box">
+        <h2>🏢 Create Client Portal Login (കമ്പനി ക്ലയന്റ് ലോഗിൻ)</h2>
+        <div class="form-grid">
+          <div class="form-group"><label>Client Company</label><select id="client_comp"></select></div>
+          <div class="form-group"><label>Client Contact / Name</label><input type="text" id="client_name" placeholder="Client Name"></div>
+          <div class="form-group"><label>Client User ID</label><input type="text" id="client_user" placeholder="e.g. ernad_client"></div>
+          <div class="form-group"><label>Client Password</label><input type="text" id="client_pass" placeholder="Password"></div>
+        </div>
+        <button type="button" class="btn" onclick="createClientUser()">+ Create Client Portal Login</button>
+      </div>
+
+      <div class="box">
+        <h2>Active Client Portal Accounts</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Company</th><th>Client Name</th><th>User ID</th><th>Password</th><th>Permissions</th><th>Action</th></tr></thead>
+            <tbody id="client_users_rows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="box">
+        <h2>🔒 Update Main Admin Login Credentials</h2>
+        <div class="form-grid">
+          <div class="form-group"><label>Main Admin User ID</label><input type="text" id="cfg_user" value="adrock"></div>
+          <div class="form-group"><label>Main Admin Password</label><input type="text" id="cfg_pass" value="adrock123"></div>
+        </div>
+        <button type="button" class="btn" onclick="saveCredentials()">Save Admin Credentials</button>
+      </div>
+
+      <div class="box">
+        <h2 id="staff_form_title">👤 Register Permanent Staff Member (സാലറി & OT എമൗണ്ട് ഉൾപ്പെടെ)</h2>
+        <input type="hidden" id="edit_staff_key" value="">
+        <div class="form-grid">
+          <div class="form-group"><label>Assigned Company</label><select id="m_s_comp"></select></div>
+          <div class="form-group"><label>Staff Name</label><input type="text" id="m_s_name" placeholder="Full Name"></div>
+          <div class="form-group">
+            <label>Designation / Role</label>
+            <select id="m_s_role">
+              <option value="Supervisor">Supervisor</option>
+              <option value="Mechanic & Welder">Mechanic & Welder</option>
+              <option value="Operator">Operator</option>
+              <option value="Helper">Helper</option>
+              <option value="Electrician">Electrician</option>
+              <option value="Driver">Driver</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Wage Type</label>
+            <select id="m_s_type">
+              <option value="Daily">Daily Wage</option>
+              <option value="Fixed">Fixed Monthly</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Default Rate / Salary (₹)</label><input type="number" id="m_s_rate" placeholder="Daily rate or monthly pay"></div>
+          <div class="form-group"><label>OT Rate / Hour (₹)</label><input type="number" id="m_s_ot_rate" placeholder="e.g. 50, 100"></div>
+          <div class="form-group" style="grid-column: 1 / -1;"><label>Phone Number</label><input type="text" id="m_s_phone" placeholder="Phone (Optional)"></div>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button type="button" id="btn_save_staff" class="btn" onclick="savePermanentStaff()">+ Save Staff Member</button>
+          <button type="button" id="btn_cancel_staff_edit" class="btn-clear" style="display:none; padding:11px 16px; font-weight:bold;" onclick="cancelStaffEdit()">Cancel</button>
+        </div>
+      </div>
+
+      <div class="box">
+        <h2>Staff Directory</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Company</th><th>Name</th><th>Role</th><th>Type</th><th class="num">Default Rate (₹)</th><th class="num">OT Rate/Hr (₹)</th><th>Action</th></tr></thead>
+            <tbody id="directory_rows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="box">
+        <h2>⚙️ Register Company</h2>
+        <div class="form-grid">
+          <div class="form-group" style="grid-column: span 2;"><label>Company Name</label><input type="text" id="new_c_name" placeholder="Company Name"></div>
+          <div class="form-group"><label>Billing Mode</label><select id="new_c_type"><option value="Unit Based">Unit Based</option><option value="Fixed Monthly">Fixed Monthly</option></select></div>
+        </div>
+        <button type="button" class="btn" onclick="addCompany()">+ Add Company</button>
+      </div>
+
+      <div class="box">
+        <h2>Existing Companies</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Company Name</th><th>Billing Model</th><th>Action</th></tr></thead>
+            <tbody id="company_rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // 1. MULTILINGUAL TRANSLATION DICTIONARY
+    const translations = {
+      en: {
+        logout: "Lock App",
+        nav_dash: "Dashboard",
+        nav_units: "Units Entry",
+        nav_fixed: "Fixed Billing",
+        nav_bill_gen: "🧾 Invoice & Quotation",
+        nav_att: "📋 Daily Sheet",
+        nav_adv: "📒 Advance Ledger",
+        nav_voucher: "📑 Staff Voucher",
+        nav_payroll: "💰 Salary Payout",
+        nav_company_flow: "🏢 Company Ledger",
+        nav_fpower: "⚡ F-Power & Partners",
+        nav_store: "📦 Store / Stock",
+        nav_masters: "⚙️ Masters & Users",
+        dash_month: "Filter Month:",
+        all_time: "All Time",
+        c_net_balance: "💵 Net In-Hand Balance",
+        c_tot_units: "Total Units Produced",
+        c_cur_units: "This Month Units",
+        c_gross_billed: "Gross Billing (Without TDS)",
+        c_tds_cut: "Total TDS Deducted",
+        c_net_billed: "Net Billing (With TDS)",
+        c_rec: "Client Receipts (Inflow)",
+        c_due: "Pending Due",
+        t_month_summary: "📊 Month-Wise Billing & TDS Summary",
+        th_m_month: "Month",
+        th_m_units: "Units Produced",
+        th_m_gross: "Total Gross (₹)",
+        th_m_tds: "TDS Deducted (₹)",
+        th_m_net: "Total Net (₹)",
+        t_comp_summary: "Company Billing Summary (With & Without TDS)",
+        t_unit_entry: "Record Daily Production Units",
+        lbl_u_date: "Date",
+        lbl_u_comp: "Company / Plant",
+        lbl_u_qty: "Units Produced",
+        lbl_u_rate: "Rate / Unit (₹)",
+        lbl_u_gross: "Gross Amount (Without TDS)",
+        lbl_u_net: "Net Payable (1% TDS Cut)",
+        lbl_u_notes: "Comments / Shift Remarks",
+        btn_save_unit: "Save Daily Unit Entry",
+        t_daily_att_title: "📋 Daily Attendance Sheet (Staff 1, 2, 3...)",
+        lbl_att_date: "Select Date:",
+        lbl_att_today: "Today",
+        btn_save_daily_att: "💾 Save Full Day Attendance Sheet",
+        t_indiv_title: "🔍 Individual Staff Attendance Search",
+        lbl_indiv_staff: "Select Staff Member:",
+        lbl_indiv_month: "Month:",
+        btn_show_history: "Show History",
+        lbl_card_duty: "Total Duty Days",
+        lbl_card_ot: "Total OT Hours",
+        lbl_card_absent: "Absent Days"
+      },
+      ml: {
+        logout: "ലോക്ക് ചെയ്യുക",
+        nav_dash: "ഡാഷ്‌ബോർഡ്",
+        nav_units: "യൂണിറ്റ് എൻട്രി",
+        nav_fixed: "ഫിക്സഡ് ബില്ലിംഗ്",
+        nav_bill_gen: "🧾 ഇൻവോയ്സ് & കൊട്ടേഷൻ",
+        nav_att: "📋 ഡെയ്‌ലി ഷീറ്റ്",
+        nav_adv: "📒 അഡ്വാൻസ് ലെഡ്ജർ",
+        nav_voucher: "📑 സ്റ്റാഫ് വൗച്ചർ",
+        nav_payroll: "💰 സാലറി നൽകൽ",
+        nav_company_flow: "🏢 കമ്പനി ലെഡ്ജർ",
+        nav_fpower: "⚡ എഫ് പവർ & പാർട്ണേഴ്സ്",
+        nav_store: "📦 സ്റ്റോക്ക് / സ്റ്റോർ",
+        nav_masters: "⚙️ മാസ്റ്റേഴ്സ് & യൂസേഴ്സ്",
+        dash_month: "മാസം തിരഞ്ഞെടുക്കുക:",
+        all_time: "മുഴുവൻ കാണുക",
+        c_net_balance: "💵 കയ്യിലുള്ള ബാക്കി ക്യാഷ് ബാലൻസ്",
+        c_tot_units: "ആകെ ഉത്പാദിപ്പിച്ച യൂണിറ്റ്",
+        c_cur_units: "ഈ മാസത്തെ യൂണിറ്റ്",
+        c_gross_billed: "ഗ്രോസ് ബില്ലിംഗ് (TDS ഇല്ലാതെ)",
+        c_tds_cut: "പിടിച്ച ആകെ TDS",
+        c_net_billed: "നെറ്റ് ബില്ലിംഗ് (TDS കുറച്ച്)",
+        c_rec: "കമ്പനി തന്ന തുക (Inflow)",
+        c_due: "കിട്ടാനുള്ള ബാക്കി തുക",
+        t_month_summary: "📊 മാസ തിരിച്ചുള്ള ബില്ലിംഗ് & TDS സംഗ്രഹം",
+        th_m_month: "മാസം",
+        th_m_units: "യൂണിറ്റുകൾ",
+        th_m_gross: "ഗ്രോസ് തുക (₹)",
+        th_m_tds: "TDS തുക (₹)",
+        th_m_net: "നെറ്റ് തുക (₹)",
+        t_comp_summary: "കമ്പനി തിരിച്ചുള്ള ബില്ലിംഗ് കണക്ക്",
+        t_unit_entry: "ദിവസേനയുള്ള യൂണിറ്റ് രേഖപ്പെടുത്തുക",
+        lbl_u_date: "തീയതി",
+        lbl_u_comp: "കമ്പനി / പ്ലാന്റ്",
+        lbl_u_qty: "ഉത്പാദിപ്പിച്ച യൂണിറ്റ്",
+        lbl_u_rate: "യൂണിറ്റ് നിരക്ക് (₹)",
+        lbl_u_gross: "ഗ്രോസ് തുക (TDS ഇല്ലാതെ)",
+        lbl_u_net: "നെറ്റ് തുക (1% TDS കുറച്ച്)",
+        lbl_u_notes: "ഷിഫ്റ്റ് വിവരങ്ങൾ",
+        btn_save_unit: "യൂണിറ്റ് സേവ് ചെയ്യുക",
+        t_daily_att_title: "📋 ദിവസേനയുള്ള ഹാജർ രജിസ്റ്റർ (1, 2, 3...)",
+        lbl_att_date: "തീയതി തിരഞ്ഞെടുക്കുക:",
+        lbl_att_today: "ഇന്ന്",
+        btn_save_daily_att: "💾 ഹാജർ രജിസ്റ്റർ സേവ് ചെയ്യുക",
+        t_indiv_title: "🔍 വ്യക്തിഗത ഹാജർ പരിശോധന",
+        lbl_indiv_staff: "സ്റ്റാഫിനെ തിരഞ്ഞെടുക്കുക:",
+        lbl_indiv_month: "മാസം:",
+        btn_show_history: "വിവരങ്ങൾ കാണുക",
+        lbl_card_duty: "ആകെ ഹാജർ",
+        lbl_card_ot: "ആകെ ഓവർടൈം (OT)",
+        lbl_card_absent: "അവധി ദിനങ്ങൾ"
+      },
+      hi: {
+        logout: "ऐप लॉक करें",
+        nav_dash: "डैशबोर्ड",
+        nav_units: "यूनिट एंट्री",
+        nav_fixed: "फिक्स्ड बिलिंग",
+        nav_bill_gen: "🧾 इनवॉइस & कोटेशन",
+        nav_att: "📋 दैनिक हाजिरी",
+        nav_adv: "📒 अग्रिम खाता",
+        nav_voucher: "📑 स्टाफ वाउचर",
+        nav_payroll: "💰 वेतन भुगतान",
+        nav_company_flow: "🏢 कंपनी खाता",
+        nav_fpower: "⚡ एफ पावर & पार्टनर्स",
+        nav_store: "📦 स्टोर / स्टॉक",
+        nav_masters: "⚙️ मास्टर्स & यूज़र्स",
+        dash_month: "महीना चुनें:",
+        all_time: "सभी समय",
+        c_net_balance: "💵 हाथ में शेष नकद राशि (Net Balance)",
+        c_tot_units: "कुल उत्पादित यूनिट",
+        c_cur_units: "इस महीने की यूनिट",
+        c_gross_billed: "सकल बिलिंग (TDS के बिना)",
+        c_tds_cut: "कुल कटा हुआ TDS",
+        c_net_billed: "शुद्ध बिलिंग (TDS के बाद)",
+        c_rec: "प्राप्त राशि (Inflow)",
+        c_due: "बकाया राशि",
+        t_month_summary: "📊 माहवार बिलिंग और TDS सारांश",
+        th_m_month: "महीना",
+        th_m_units: "उत्पादित यूनिट",
+        th_m_gross: "सकल राशि (₹)",
+        th_m_tds: "TDS कटौती (₹)",
+        th_m_net: "शुद्ध राशि (₹)",
+        t_comp_summary: "कंपनी बिलिंग सारांश (TDS सहित)",
+        t_unit_entry: "दैनिक उत्पादन यूनिट दर्ज करें",
+        lbl_u_date: "तारीख",
+        lbl_u_comp: "कंपनी / प्लांट",
+        lbl_u_qty: "उत्पादित यूनिट",
+        lbl_u_rate: "यूनिट दर (₹)",
+        lbl_u_gross: "सकल राशि (TDS के बिना)",
+        lbl_u_net: "शुद्ध देय राशि (1% TDS)",
+        lbl_u_notes: "टिप्पणी / विवरण",
+        btn_save_unit: "यूनिट एंट्री सहेजें",
+        t_daily_att_title: "📋 दैनिक उपस्थिति शीट (1, 2, 3...)",
+        lbl_att_date: "तारीख चुनें:",
+        lbl_att_today: "आज",
+        btn_save_daily_att: "💾 दैनिक उपस्थिति सहेजें",
+        t_indiv_title: "🔍 व्यक्तिगत उपस्थिति खोज",
+        lbl_indiv_staff: "स्टाफ चुनें:",
+        lbl_indiv_month: "महीना:",
+        btn_show_history: "इतिहास देखें",
+        lbl_card_duty: "कुल ड्यूटी दिन",
+        lbl_card_ot: "कुल ओवरटाइम (OT)",
+        lbl_card_absent: "अनुपस्थित दिन"
+      }
+    };
+
+    function changeLanguage(lang) {
+      localStorage.setItem('adrock_lang', lang);
+      document.getElementById('global_lang_select').value = lang;
+      var dict = translations[lang] || translations.en;
+      for (var id in dict) {
+        var el = document.getElementById(id);
+        if (el) el.innerText = dict[id];
+      }
+    }
+
+    // 2. FIREBASE INITIALIZATION
+    const firebaseConfig = {
+      apiKey: "AIzaSyDsXibJt2xnUASYCN1FCZ8QrKbWNsgfKyo",
+      authDomain: "adrock-845f4.firebaseapp.com",
+      databaseURL: "https://adrock-845f4-default-rtdb.firebaseio.com",
+      projectId: "adrock-845f4",
+      storageBucket: "adrock-845f4.firebasestorage.app",
+      messagingSenderId: "931410673371",
+      appId: "1:931410673371:web:6c4fb80e9ea51c077516fe",
+      measurementId: "G-GKWMSFW99K"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Data Containers
+    var companies = {};
+    var staffDirectory = {};
+    var unitsList = {};
+    var fixedList = {};
+    var attendanceList = {};
+    var advanceList = {};
+    var payrollList = {};
+    var clientReceipts = {};
+    var expList = {};
+    var partnersList = {};
+    var fpowerList = {};
+    var storeList = {};
+    var clientUsersList = {};
+    var loginLogsList = {};
+    var appAuth = { user: "adrock", pass: "adrock123" };
+    var currentUserRole = 'admin';
+    var currentUserComp = '';
+
+    function toggleLoginCompField() {
+      var r = document.getElementById('log_role').value;
+      document.getElementById('log_comp_wrap').style.display = (r === 'client') ? 'block' : 'none';
+    }
+
+    function setTodayDate() {
+      var today = new Date().toISOString().split('T')[0];
+      document.getElementById('daily_att_date').value = today;
+      var uDateEl = document.getElementById('u_date');
+      if (uDateEl) uDateEl.value = today;
+      var fpDateEl = document.getElementById('fp_date');
+      if (fpDateEl) fpDateEl.value = today;
+      var genDateEl = document.getElementById('gen_inv_date');
+      if (genDateEl) genDateEl.value = today;
+      var curMonth = today.substring(0, 7);
+      var indMonthEl = document.getElementById('indiv_staff_month');
+      if (indMonthEl && !indMonthEl.value) indMonthEl.value = curMonth;
+      loadDailyAttendanceSheet();
+      refreshInvoiceTemplate();
+    }
+
+    function logUserAccess(user, name, role, comp) {
+      var now = new Date();
+      var formattedDate = now.toLocaleDateString('en-GB') + ' ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+      db.ref('login_logs').push({
+        user: user,
+        name: name,
+        role: role,
+        comp: comp || 'All / Master Admin',
+        time: formattedDate,
+        epoch: now.getTime()
+      });
+    }
+
+    function applyUserRolePermissions(role, userComp) {
+      currentUserRole = role;
+      currentUserComp = userComp || '';
+      var adminOnlyTabs = ['nav_dash', 'nav_fixed', 'nav_bill_gen', 'nav_adv', 'nav_voucher', 'nav_payroll', 'nav_company_flow', 'nav_fpower', 'nav_masters'];
+      var badge = document.getElementById('role_status_badge');
+
+      if (role === 'client') {
+        for (var i = 0; i < adminOnlyTabs.length; i++) {
+          var el = document.getElementById(adminOnlyTabs[i]);
+          if (el) el.style.display = 'none';
+        }
+        
+        var adminFields = document.querySelectorAll('.admin-only-field');
+        adminFields.forEach(function(f) { f.style.display = 'none'; });
+
+        document.getElementById('tab2').checked = true;
+        if (badge) badge.innerText = '🏢 Client: [' + currentUserComp + ']';
+        
+        var stCompEl = document.getElementById('st_comp');
+        if (stCompEl) { stCompEl.value = currentUserComp; stCompEl.disabled = true; }
+        var uCompEl = document.getElementById('u_comp');
+        if (uCompEl) { uCompEl.value = currentUserComp; uCompEl.disabled = true; }
+      } else {
+        for (var j = 0; j < adminOnlyTabs.length; j++) {
+          var el2 = document.getElementById(adminOnlyTabs[j]);
+          if (el2) el2.style.display = 'block';
+        }
+
+        var adminFields2 = document.querySelectorAll('.admin-only-field');
+        adminFields2.forEach(function(f) { f.style.display = 'flex'; });
+        var historyBox = document.getElementById('units_history_box');
+        if (historyBox) historyBox.style.display = 'block';
+
+        document.getElementById('tab1').checked = true;
+        if (badge) badge.innerText = '👑 Main Admin: Full Access';
+        
+        var stCompEl2 = document.getElementById('st_comp');
+        if (stCompEl2) stCompEl2.disabled = false;
+        var uCompEl2 = document.getElementById('u_comp');
+        if (uCompEl2) uCompEl2.disabled = false;
+      }
+
+      loadDailyAttendanceSheet();
+      renderStoreTables();
+      renderUnitsTable();
+    }
+
+    function checkAuth() {
+      var role = document.getElementById('log_role').value;
+      var selComp = document.getElementById('log_comp').value;
+      var u = document.getElementById('log_user').value.trim();
+      var p = document.getElementById('log_pass').value.trim();
+
+      if (role === 'admin') {
+        if (u === appAuth.user && p === appAuth.pass) {
+          logUserAccess(u, 'Main Administrator', '👑 Main Admin', 'All Access');
+          document.getElementById('login_overlay').style.display = 'none';
+          sessionStorage.setItem('ad_logged', 'true');
+          sessionStorage.setItem('ad_role', 'admin');
+          sessionStorage.setItem('ad_comp', '');
+          applyUserRolePermissions('admin', '');
+          return;
+        }
+      } else {
+        for (var k in clientUsersList) {
+          var cl = clientUsersList[k];
+          if (cl.user === u && cl.pass === p && cl.comp === selComp) {
+            logUserAccess(u, cl.name || 'Client', '🏢 Client Portal', cl.comp);
+            document.getElementById('login_overlay').style.display = 'none';
+            sessionStorage.setItem('ad_logged', 'true');
+            sessionStorage.setItem('ad_role', 'client');
+            sessionStorage.setItem('ad_comp', cl.comp);
+            applyUserRolePermissions('client', cl.comp);
+            return;
+          }
+        }
+      }
+
+      document.getElementById('log_err').style.display = 'block';
+    }
+
+    function logout() {
+      sessionStorage.removeItem('ad_logged');
+      sessionStorage.removeItem('ad_role');
+      sessionStorage.removeItem('ad_comp');
+      document.getElementById('log_pass').value = '';
+      document.getElementById('log_err').style.display = 'none';
+      document.getElementById('login_overlay').style.display = 'flex';
+    }
+
+    if (sessionStorage.getItem('ad_logged') === 'true') {
+      document.getElementById('login_overlay').style.display = 'none';
+      var savedRole = sessionStorage.getItem('ad_role') || 'admin';
+      var savedComp = sessionStorage.getItem('ad_comp') || '';
+      applyUserRolePermissions(savedRole, savedComp);
+    }
+
+    db.ref('auth_config').on('value', function(snap) {
+      if (snap.val()) {
+        appAuth = snap.val();
+        document.getElementById('cfg_user').value = appAuth.user;
+        document.getElementById('cfg_pass').value = appAuth.pass;
+      }
+    });
+
+    db.ref('client_users').on('value', function(snap) {
+      clientUsersList = snap.val() || {};
+      renderClientUsersTable();
+    });
+
+    db.ref('login_logs').on('value', function(snap) {
+      loginLogsList = snap.val() || {};
+      renderLoginLogsTable();
+    });
+
+    function renderLoginLogsTable() {
+      var tbody = document.getElementById('login_logs_rows');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      var arr = [];
+      for (var k in loginLogsList) {
+        var obj = loginLogsList[k];
+        obj._key = k;
+        arr.push(obj);
+      }
+
+      arr.sort(function(a, b) {
+        return (b.epoch || 0) - (a.epoch || 0);
+      });
+
+      document.getElementById('log_total_count').innerText = arr.length;
+      if (arr.length > 0) {
+        document.getElementById('log_last_user').innerText = arr[0].user + ' (' + arr[0].time + ')';
+      } else {
+        document.getElementById('log_last_user').innerText = 'No logins yet';
+      }
+
+      for (var i = 0; i < arr.length; i++) {
+        var l = arr[i];
+        tbody.innerHTML += '<tr>' +
+          '<td>' + (i + 1) + '</td>' +
+          '<td><strong>⏱️ ' + l.time + '</strong></td>' +
+          '<td><code style="color:#f59e0b;">' + l.user + '</code></td>' +
+          '<td><strong>' + l.name + '</strong></td>' +
+          '<td>' + l.role + '</td>' +
+          '<td><span class="comp-tag">' + l.comp + '</span></td>' +
+          '<td><button class="btn-del" onclick="delLoginLog(\'' + l._key + '\')">Delete</button></td>' +
+        '</tr>';
+      }
+    }
+
+    function delLoginLog(key) {
+      if (confirm('Delete this login activity entry?')) db.ref('login_logs/' + key).remove();
+    }
+
+    function clearAllLoginLogs() {
+      if (confirm('Are you sure you want to clear all login access history?')) db.ref('login_logs').remove();
+    }
+
+    function saveCredentials() {
+      var u = document.getElementById('cfg_user').value.trim();
+      var p = document.getElementById('cfg_pass').value.trim();
+      if (!u || !p) { alert('Enter valid User ID and Password'); return; }
+      db.ref('auth_config').set({ user: u, pass: p });
+      alert('Main Admin Credentials Updated Successfully!');
+    }
+
+    function createClientUser() {
+      var comp = document.getElementById('client_comp').value;
+      var name = document.getElementById('client_name').value.trim();
+      var user = document.getElementById('client_user').value.trim();
+      var pass = document.getElementById('client_pass').value.trim();
+
+      if (!comp || !name || !user || !pass) { alert('Select Company, enter Client Name, User ID and Password'); return; }
+
+      db.ref('client_users').push({ comp: comp, name: name, user: user, pass: pass, role: 'client' });
+      document.getElementById('client_name').value = '';
+      document.getElementById('client_user').value = '';
+      document.getElementById('client_pass').value = '';
+      alert('Client Portal Account Created for ' + comp + '!');
+    }
+
+    function renderClientUsersTable() {
+      var tbody = document.getElementById('client_users_rows');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      for (var k in clientUsersList) {
+        var s = clientUsersList[k];
+        tbody.innerHTML += '<tr><td><span class="comp-tag">' + (s.comp || '-') + '</span></td><td><strong>' + s.name + '</strong></td><td><code style="color:#f59e0b;">' + s.user + '</code></td><td>' + s.pass + '</td><td><span style="color:#10b981; font-weight:bold;">Daily Unit & Attendance Entry</span></td><td><button class="btn-del" onclick="delClientUser(\'' + k + '\')">Delete</button></td></tr>';
+      }
+    }
+
+    function delClientUser(key) {
+      if (confirm('Delete this client account?')) db.ref('client_users/' + key).remove();
+    }
+
+    function sortArrayByDate(arr, field) {
+      return arr.sort(function(a, b) {
+        var d1 = a[field] || '';
+        var d2 = b[field] || '';
+        return d1.localeCompare(d2);
+      });
+    }
+
+    // 3. REALTIME LISTENERS
+    db.ref('companies').on('value', function(snap) {
+      companies = snap.val() || {};
+      if (Object.keys(companies).length === 0) {
+        db.ref('companies').push({ name: "Ernad Machine Materials", type: "Unit Based" });
+        db.ref('companies').push({ name: "MCR Stones", type: "Fixed Monthly" });
+      }
+      populateCompanySelects();
+      renderCompanyTable();
+      refreshStats();
+      loadDailyAttendanceSheet();
+      renderCompanyFlowTables();
+      refreshInvoiceTemplate();
+    });
+
+    db.ref('staff_directory').on('value', function(snap) {
+      staffDirectory = snap.val() || {};
+      populateStaffSelects();
+      renderDirectoryTable();
+      renderStaffVoucher();
+      loadDailyAttendanceSheet();
+    });
+
+    db.ref('units').on('value', function(snap) {
+      unitsList = snap.val() || {};
+      renderUnitsTable();
+      refreshStats();
+      renderCompanyFlowTables();
+      renderPartnersSummaryTable();
+    });
+
+    db.ref('fixed').on('value', function(snap) {
+      fixedList = snap.val() || {};
+      renderFixedTable();
+      refreshStats();
+      renderCompanyFlowTables();
+      renderPartnersSummaryTable();
+    });
+
+    db.ref('attendance').on('value', function(snap) {
+      attendanceList = snap.val() || {};
+      renderStaffVoucher();
+      loadDailyAttendanceSheet();
+    });
+
+    db.ref('advances').on('value', function(snap) {
+      advanceList = snap.val() || {};
+      renderAdvanceTable();
+      renderStaffVoucher();
+      pullStaffMonthData();
+      refreshStats();
+    });
+
+    db.ref('payroll').on('value', function(snap) {
+      payrollList = snap.val() || {};
+      renderPayrollTable();
+      refreshStats();
+      renderPartnersSummaryTable();
+    });
+
+    db.ref('client_receipts').on('value', function(snap) {
+      clientReceipts = snap.val() || {};
+      refreshStats();
+      renderCompanyFlowTables();
+    });
+
+    db.ref('expenses').on('value', function(snap) {
+      expList = snap.val() || {};
+      renderCompanyFlowTables();
+      refreshStats();
+      renderPartnersSummaryTable();
+    });
+
+    db.ref('partners').on('value', function(snap) {
+      partnersList = snap.val() || {};
+      populatePartnerSelect();
+      renderPartnersSummaryTable();
+    });
+
+    db.ref('fpower').on('value', function(snap) {
+      fpowerList = snap.val() || {};
+      renderFPowerTables();
+      renderPartnersSummaryTable();
+      refreshStats();
+    });
+
+    db.ref('store').on('value', function(snap) {
+      storeList = snap.val() || {};
+      renderStoreTables();
+    });
+
+    function populateCompanySelects() {
+      var ids = ['u_comp', 'f_comp', 'adv_comp', 's_comp', 'st_comp', 'm_s_comp', 'vouch_comp', 'cr_comp', 'e_comp', 'client_comp', 'log_comp', 'new_part_comp', 'gen_client_comp'];
+      for (var i = 0; i < ids.length; i++) {
+        var el = document.getElementById(ids[i]);
+        if (!el) continue;
+        var currentVal = el.value;
+        if (ids[i] === 'vouch_comp') {
+          el.innerHTML = '<option value="">-- All Companies --</option>';
+        } else {
+          el.innerHTML = '';
+        }
+        for (var k in companies) {
+          el.innerHTML += '<option value="' + companies[k].name + '">' + companies[k].name + '</option>';
+        }
+        if (currentVal) el.value = currentVal;
+      }
+    }
+
+    function populateStaffSelects() {
+      var selects = ['adv_staff_select', 's_staff_select', 'adv_filter_staff', 'indiv_staff_select'];
+      for (var s = 0; s < selects.length; s++) {
+        var el = document.getElementById(selects[s]);
+        if (!el) continue;
+        var currentVal = el.value;
+        if (selects[s] === 'adv_filter_staff') {
+          el.innerHTML = '<option value="">-- All Staff Members --</option>';
+        } else if (selects[s] === 'indiv_staff_select') {
+          el.innerHTML = '<option value="">-- Choose Staff to Search --</option>';
+        } else {
+          el.innerHTML = '<option value="">-- Choose Staff Member --</option>';
+        }
+
+        for (var k in staffDirectory) {
+          var item = staffDirectory[k];
+          var compInfo = item.comp ? ' [' + item.comp + ']' : '';
+          el.innerHTML += '<option value="' + item.name + '">' + item.name + ' (' + item.role + ')' + compInfo + '</option>';
+        }
+        if (currentVal) el.value = currentVal;
+      }
+    }
+
+    function onAdvStaffChange() {
+      var name = document.getElementById('adv_staff_select').value;
+      for (var k in staffDirectory) {
+        if (staffDirectory[k].name === name && staffDirectory[k].comp) {
+          document.getElementById('adv_comp').value = staffDirectory[k].comp;
+          break;
+        }
+      }
+    }
+
+    // 4. INVOICE & QUOTATION BUILDER
+    function onGenCompChange() {
+      refreshInvoiceTemplate();
+    }
+
+    function addInvoiceItemRow() {
+      var wrap = document.getElementById('gen_line_items');
+      var div = document.createElement('div');
+      div.className = 'form-grid item-row';
+      div.style.marginBottom = '8px';
+      div.innerHTML = `
+        <div class="form-group" style="grid-column: span 2;"><label>Item / Service Description</label><input type="text" class="it-desc" placeholder="Crusher Jaw Maintenance / Unit Production" oninput="refreshInvoiceTemplate()"></div>
+        <div class="form-group"><label>HSN / SAC</label><input type="text" class="it-hsn" value="9987" oninput="refreshInvoiceTemplate()"></div>
+        <div class="form-group"><label>Qty</label><input type="number" class="it-qty" value="1" oninput="refreshInvoiceTemplate()"></div>
+        <div class="form-group"><label>Rate (₹)</label><input type="number" class="it-rate" value="1000" oninput="refreshInvoiceTemplate()"></div>
+      `;
+      wrap.appendChild(div);
+      refreshInvoiceTemplate();
+    }
+
+    function refreshInvoiceTemplate() {
+      var docType = document.getElementById('gen_doc_type').value;
+      var invNo = document.getElementById('gen_inv_no').value || 'ADR/2026/001';
+      var invDate = document.getElementById('gen_inv_date').value || new Date().toISOString().split('T')[0];
+      var clientComp = document.getElementById('gen_client_comp').value || 'Ernad Machine Materials';
+      var clientGst = document.getElementById('gen_client_gst').value.trim() || '-';
+      var clientAddr = document.getElementById('gen_client_addr').value.trim() || 'Crusher Plant Location, Kerala';
+      var bankTerms = document.getElementById('gen_bank_terms').value || 'Bank Transfer within 15 days';
+      var gstRate = parseFloat(document.getElementById('gen_gst_rate').value) || 0;
+      var tdsApplyPct = parseFloat(document.getElementById('gen_tds_apply').value) || 0;
+
+      document.getElementById('p_doc_type').innerText = docType;
+      document.getElementById('p_inv_no').innerText = invNo;
+      document.getElementById('p_inv_date').innerText = invDate;
+      document.getElementById('p_client_name').innerText = clientComp;
+      document.getElementById('p_client_addr').innerText = clientAddr;
+      document.getElementById('p_client_gst').innerText = clientGst;
+      document.getElementById('p_bank_details').innerText = bankTerms;
+
+      var rows = document.querySelectorAll('.item-row');
+      var tbody = document.getElementById('p_items_tbody');
+      tbody.innerHTML = '';
+
+      var subtotal = 0;
+      rows.forEach(function(r, idx) {
+        var desc = r.querySelector('.it-desc').value || 'Service Item';
+        var hsn = r.querySelector('.it-hsn').value || '-';
+        var qty = parseFloat(r.querySelector('.it-qty').value) || 0;
+        var rate = parseFloat(r.querySelector('.it-rate').value) || 0;
+        var lineAmt = qty * rate;
+        subtotal += lineAmt;
+
+        tbody.innerHTML += `
+          <tr>
+            <td>${idx + 1}</td>
+            <td><strong>${desc}</strong></td>
+            <td>${hsn}</td>
+            <td class="num">${qty}</td>
+            <td class="num">₹${rate.toFixed(2)}</td>
+            <td class="num"><strong>₹${lineAmt.toFixed(2)}</strong></td>
+          </tr>
+        `;
+      });
+
+      var gstAmount = subtotal * (gstRate / 100);
+      var tdsAmount = subtotal * (tdsApplyPct / 100);
+      var finalPayable = (subtotal + gstAmount) - tdsAmount;
+
+      document.getElementById('p_subtotal').innerText = '₹' + subtotal.toLocaleString('en-IN', {minimumFractionDigits:2});
+      document.getElementById('p_gst_pct').innerText = gstRate;
+      document.getElementById('p_gst_amt').innerText = '+₹' + gstAmount.toLocaleString('en-IN', {minimumFractionDigits:2});
+      
+      var tdsRow = document.getElementById('p_tds_row');
+      if (tdsApplyPct > 0) {
+        tdsRow.style.display = 'table-row';
+        document.getElementById('p_tds_pct').innerText = tdsApplyPct;
+        document.getElementById('p_tds_amt').innerText = '-₹' + tdsAmount.toLocaleString('en-IN', {minimumFractionDigits:2});
+      } else {
+        tdsRow.style.display = 'none';
+      }
+
+      var gstRow = document.getElementById('p_gst_row');
+      if (gstRate > 0) {
+        gstRow.style.display = 'table-row';
+      } else {
+        gstRow.style.display = 'none';
+      }
+
+      document.getElementById('p_final_total').innerText = '₹' + finalPayable.toLocaleString('en-IN', {minimumFractionDigits:2});
+    }
+
+    // 5. DAILY ATTENDANCE SHEET
+    function loadDailyAttendanceSheet() {
+      var container = document.getElementById('daily_sheet_container');
+      if (!container) return;
+      container.innerHTML = '';
+
+      var selDate = document.getElementById('daily_att_date').value;
+      if (!selDate) return;
+
+      var companyGroups = {};
+      for (var ck in companies) {
+        var cN = companies[ck].name;
+        if (currentUserRole === 'client' && currentUserComp && cN !== currentUserComp) continue;
+        companyGroups[cN] = [];
+      }
+
+      for (var sk in staffDirectory) {
+        var staff = staffDirectory[sk];
+        var cName = staff.comp || 'General';
+        if (currentUserRole === 'client' && currentUserComp && cName !== currentUserComp) continue;
+        if (!companyGroups[cName]) companyGroups[cName] = [];
+        companyGroups[cName].push(staff);
+      }
+
+      var existingAtt = {};
+      for (var ak in attendanceList) {
+        var att = attendanceList[ak];
+        if (att.date === selDate) {
+          existingAtt[att.name] = att;
+        }
+      }
+
+      for (var cName in companyGroups) {
+        var staffListForComp = companyGroups[cName];
+        if (staffListForComp.length === 0) continue;
+
+        var html = '<div class="comp-section-header"><span>🏢 ' + cName + '</span><span>' + staffListForComp.length + ' Staff</span></div>';
+        html += '<div class="table-wrap"><table>';
+        html += '<thead><tr><th style="width:40px;">#</th><th>Staff Name</th><th>Role</th><th style="width:140px;">Status</th><th style="width:90px;" class="num">OT (Hrs)</th><th>Work Remarks</th></tr></thead>';
+        html += '<tbody>';
+
+        for (var i = 0; i < staffListForComp.length; i++) {
+          var st = staffListForComp[i];
+          var num = i + 1;
+          var rec = existingAtt[st.name] || {};
+          var curStatus = rec.status || 'Present';
+          var curOt = rec.ot || 0;
+          var curNotes = rec.notes || '';
+
+          html += '<tr data-comp="' + cName + '" data-name="' + st.name + '" data-role="' + st.role + '">';
+          html += '<td><strong>' + num + '</strong></td>';
+          html += '<td><strong>' + st.name + '</strong></td>';
+          html += '<td>' + st.role + '</td>';
+          html += '<td><select class="sheet-status" style="padding:6px; background:#0b1329; color:#fff; border:1px solid #334155; border-radius:4px; width:100%;">';
+          html += '<option value="Present"' + (curStatus === 'Present' ? ' selected':'') + '>Present</option>';
+          html += '<option value="Half Day"' + (curStatus === 'Half Day' ? ' selected':'') + '>Half Day</option>';
+          html += '<option value="Absent"' + (curStatus === 'Absent' ? ' selected':'') + '>Absent</option>';
+          html += '</select></td>';
+          html += '<td><input type="number" step="0.5" class="sheet-ot" value="' + curOt + '" style="padding:6px; background:#0b1329; color:#fff; border:1px solid #334155; border-radius:4px; width:100%; text-align:right;"></td>';
+          html += '<td><input type="text" class="sheet-notes" value="' + curNotes + '" placeholder="Task details" style="padding:6px; background:#0b1329; color:#fff; border:1px solid #334155; border-radius:4px; width:100%;"></td>';
+          html += '</tr>';
+        }
+
+        html += '</tbody></table></div>';
+        container.innerHTML += html;
+      }
+    }
+
+    function saveDailyAttendanceSheet() {
+      var selDate = document.getElementById('daily_att_date').value;
+      if (!selDate) { alert('Please select a date first'); return; }
+
+      var rows = document.querySelectorAll('#daily_sheet_container tr[data-name]');
+      if (rows.length === 0) { alert('No staff members registered for this view'); return; }
+
+      for (var ak in attendanceList) {
+        if (attendanceList[ak].date === selDate) {
+          if (currentUserRole === 'admin' || attendanceList[ak].comp === currentUserComp) {
+            db.ref('attendance/' + ak).remove();
+          }
+        }
+      }
+
+      rows.forEach(function(r) {
+        var comp = r.getAttribute('data-comp');
+        var name = r.getAttribute('data-name');
+        var role = r.getAttribute('data-role');
+        var status = r.querySelector('.sheet-status').value;
+        var ot = parseFloat(r.querySelector('.sheet-ot').value) || 0;
+        var notes = r.querySelector('.sheet-notes').value || '-';
+
+        db.ref('attendance').push({
+          date: selDate,
+          comp: comp,
+          name: name,
+          role: role,
+          status: status,
+          ot: ot,
+          notes: notes
+        });
+      });
+
+      alert('Daily Attendance for ' + selDate + ' Saved!');
+    }
+
+    // INDIVIDUAL STAFF ATTENDANCE SEARCH
+    function searchIndividualStaffAttendance() {
+      var selStaff = document.getElementById('indiv_staff_select').value;
+      var selMonth = document.getElementById('indiv_staff_month').value;
+      var resWrap = document.getElementById('indiv_result_container');
+      var tbody = document.getElementById('indiv_att_rows');
+
+      if (!selStaff) {
+        alert('Please choose a staff member to search!');
+        return;
+      }
+
+      resWrap.style.display = 'block';
+      tbody.innerHTML = '';
+
+      var records = [];
+      for (var k in attendanceList) {
+        var a = attendanceList[k];
+        if (a.name === selStaff) {
+          if (!selMonth || (a.date && a.date.indexOf(selMonth) === 0)) {
+            records.push(a);
+          }
+        }
+      }
+
+      sortArrayByDate(records, 'date');
+
+      var dutyCount = 0;
+      var absentCount = 0;
+      var totOt = 0;
+
+      for (var i = 0; i < records.length; i++) {
+        var rec = records[i];
+        if (rec.status === 'Present') dutyCount += 1;
+        else if (rec.status === 'Half Day') dutyCount += 0.5;
+        else if (rec.status === 'Absent') absentCount += 1;
+
+        totOt += Number(rec.ot || 0);
+
+        var statusBadge = (rec.status === 'Present') ? '<span style="color:#10b981; font-weight:bold;">Present</span>' :
+                          (rec.status === 'Half Day' ? '<span style="color:#f59e0b; font-weight:bold;">Half Day</span>' :
+                          '<span style="color:#ef4444; font-weight:bold;">Absent</span>');
+
+        tbody.innerHTML += '<tr>' +
+          '<td>' + (i + 1) + '</td>' +
+          '<td><strong>📅 ' + rec.date + '</strong></td>' +
+          '<td><span class="comp-tag">' + (rec.comp || '-') + '</span></td>' +
+          '<td>' + statusBadge + '</td>' +
+          '<td class="num">' + Number(rec.ot || 0) + ' hrs</td>' +
+          '<td>' + (rec.notes || '-') + '</td>' +
+        '</tr>';
+      }
+
+      document.getElementById('indiv_tot_duty').innerText = dutyCount + ' days';
+      document.getElementById('indiv_tot_ot').innerText = totOt + ' hrs';
+      document.getElementById('indiv_tot_absent').innerText = absentCount + ' days';
+
+      if (records.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#94a3b8; padding:16px;">No attendance records found for this staff member in the selected month.</td></tr>';
+      }
+    }
+
+    // STAFF DIRECTORY
+    function savePermanentStaff() {
+      var editKey = document.getElementById('edit_staff_key').value;
+      var comp = document.getElementById('m_s_comp').value;
+      var name = document.getElementById('m_s_name').value.trim();
+      var role = document.getElementById('m_s_role').value;
+      var type = document.getElementById('m_s_type').value;
+      var rate = parseFloat(document.getElementById('m_s_rate').value) || 0;
+      var otRate = parseFloat(document.getElementById('m_s_ot_rate').value) || 0;
+      var phone = document.getElementById('m_s_phone').value.trim();
+
+      if (!comp || !name || rate <= 0) { alert('Enter staff name, company, and rate'); return; }
+
+      var staffData = { comp: comp, name: name, role: role, type: type, rate: rate, otRate: otRate, phone: phone };
+      if (editKey) {
+        db.ref('staff_directory/' + editKey).update(staffData);
+        alert('Staff Member Updated Successfully!');
+        cancelStaffEdit();
+      } else {
+        db.ref('staff_directory').push(staffData);
+        alert('Staff Member Added!');
+        cancelStaffEdit();
+      }
+    }
+
+    function editStaff(key) {
+      var s = staffDirectory[key];
+      if (!s) return;
+
+      document.getElementById('edit_staff_key').value = key;
+      document.getElementById('m_s_comp').value = s.comp || '';
+      document.getElementById('m_s_name').value = s.name || '';
+      document.getElementById('m_s_role').value = s.role || 'Supervisor';
+      document.getElementById('m_s_type').value = s.type || 'Daily';
+      document.getElementById('m_s_rate').value = s.rate || '';
+      document.getElementById('m_s_ot_rate').value = s.otRate || '';
+      document.getElementById('m_s_phone').value = s.phone || '';
+
+      document.getElementById('staff_form_title').innerText = '✏️ Edit Staff Member Details';
+      document.getElementById('btn_save_staff').innerText = '💾 Update Staff Member';
+      document.getElementById('btn_cancel_staff_edit').style.display = 'inline-block';
+      document.getElementById('staff_form_title').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function cancelStaffEdit() {
+      document.getElementById('edit_staff_key').value = '';
+      document.getElementById('m_s_name').value = '';
+      document.getElementById('m_s_rate').value = '';
+      document.getElementById('m_s_ot_rate').value = '';
+      document.getElementById('m_s_phone').value = '';
+
+      document.getElementById('staff_form_title').innerText = '👤 Register Permanent Staff Member';
+      document.getElementById('btn_save_staff').innerText = '+ Save Staff Member';
+      document.getElementById('btn_cancel_staff_edit').style.display = 'none';
+    }
+
+    function renderDirectoryTable() {
+      var tbody = document.getElementById('directory_rows');
+      tbody.innerHTML = '';
+      var idx = 1;
+      for (var k in staffDirectory) {
+        var s = staffDirectory[k];
+        tbody.innerHTML += '<tr>' +
+          '<td>' + idx + '</td>' +
+          '<td class="comp-tag">' + (s.comp || '-') + '</td>' +
+          '<td><strong>' + s.name + '</strong></td>' +
+          '<td>' + s.role + '</td>' +
+          '<td>' + s.type + '</td>' +
+          '<td class="num">₹' + (s.rate || 0) + '</td>' +
+          '<td class="num" style="color:#f59e0b;">₹' + (s.otRate || 0) + '/hr</td>' +
+          '<td>' +
+            '<button class="btn-edit" onclick="editStaff(\'' + k + '\')">Edit</button>' +
+            '<button class="btn-del" onclick="delStaffDir(\'' + k + '\')">Delete</button>' +
+          '</td>' +
+        '</tr>';
+        idx++;
+      }
+    }
+
+    function delStaffDir(key) {
+      if (confirm('Delete this staff member?')) {
+        db.ref('staff_directory/' + key).remove();
+        if (document.getElementById('edit_staff_key').value === key) cancelStaffEdit();
+      }
+    }
+
+    // 7. STAFF VOUCHER
+    function renderStaffVoucher() {
+      var tbody = document.getElementById('voucher_rows');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      var month = document.getElementById('vouch_month').value;
+      var selComp = document.getElementById('vouch_comp').value;
+
+      var summary = {};
+      for (var sk in staffDirectory) {
+        var st = staffDirectory[sk];
+        if (!selComp || st.comp === selComp) {
+          summary[st.name] = {
+            name: st.name,
+            comp: st.comp || '-',
+            role: st.role,
+            type: st.type,
+            rate: Number(st.rate || 0),
+            otRate: Number(st.otRate || 0),
+            totalDuty: 0,
+            totalOt: 0,
+            totalAdv: 0
+          };
+        }
+      }
+
+      for (var ak in attendanceList) {
+        var at = attendanceList[ak];
+        if (!month || (at.date && at.date.indexOf(month) === 0)) {
+          if (summary[at.name]) {
+            if (at.status === 'Present') summary[at.name].totalDuty += 1;
+            else if (at.status === 'Half Day') summary[at.name].totalDuty += 0.5;
+            summary[at.name].totalOt += Number(at.ot || 0);
+          }
+        }
+      }
+
+      for (var vk in advanceList) {
+        var adv = advanceList[vk];
+        if (!month || (adv.date && adv.date.indexOf(month) === 0)) {
+          if (summary[adv.name]) summary[adv.name].totalAdv += Number(adv.amt || 0);
+        }
+      }
+
+      var idx = 1;
+      for (var name in summary) {
+        var v = summary[name];
+        var baseGross = (v.type === 'Fixed') ? ((v.rate / 30) * v.totalDuty) : (v.rate * v.totalDuty);
+        var otEarned = v.totalOt * v.otRate;
+        var totalGross = baseGross + otEarned;
+        var netPayable = totalGross - v.totalAdv;
+
+        tbody.innerHTML += '<tr>' +
+          '<td>' + idx + '</td>' +
+          '<td><strong>' + v.name + '</strong></td>' +
+          '<td class="comp-tag">' + v.comp + '</td>' +
+          '<td>' + v.role + '</td>' +
+          '<td class="num">₹' + v.rate.toFixed(2) + ' <small>(' + v.type + ')</small></td>' +
+          '<td class="num" style="color:#38bdf8; font-weight:bold;">' + v.totalDuty + ' days</td>' +
+          '<td class="num">' + v.totalOt + ' hrs</td>' +
+          '<td class="num" style="color:#f59e0b;">₹' + otEarned.toFixed(2) + '</td>' +
+          '<td class="num" style="color:#ef4444;">₹' + v.totalAdv.toFixed(2) + '</td>' +
+          '<td class="num" style="color:#10b981; font-weight:bold; font-size:13.5px;">₹' + netPayable.toFixed(2) + '</td>' +
+        '</tr>';
+        idx++;
+      }
+    }
+
+    // ADVANCES
+    function saveAdvance() {
+      var d = document.getElementById('adv_date').value;
+      var comp = document.getElementById('adv_comp').value;
+      var name = document.getElementById('adv_staff_select').value;
+      var amt = parseFloat(document.getElementById('adv_amt').value) || 0;
+      var mode = document.getElementById('adv_mode').value;
+      var notes = document.getElementById('adv_notes').value || '-';
+
+      if (!d || !name || amt <= 0) { alert('Enter date, staff, and advance amount'); return; }
+
+      db.ref('advances').push({ date: d, comp: comp, name: name, amt: amt, mode: mode, notes: notes });
+      document.getElementById('adv_amt').value = '';
+      document.getElementById('adv_notes').value = '';
+      alert('Advance Recorded in Ledger!');
+    }
+
+    function renderAdvanceTable() {
+      var tbody = document.getElementById('advance_rows');
+      tbody.innerHTML = '';
+      var fMonth = document.getElementById('adv_filter_month').value;
+      var fStaff = document.getElementById('adv_filter_staff').value;
+
+      var arr = [];
+      for (var k in advanceList) {
+        var obj = advanceList[k];
+        obj._key = k;
+        var matchMonth = !fMonth || (obj.date && obj.date.indexOf(fMonth) === 0);
+        var matchStaff = !fStaff || obj.name === fStaff;
+        if (matchMonth && matchStaff) arr.push(obj);
+      }
+      sortArrayByDate(arr, 'date');
+
+      var totalAdv = 0;
+      for (var i = 0; i < arr.length; i++) {
+        var v = arr[i];
+        totalAdv += Number(v.amt);
+        tbody.innerHTML += '<tr><td>' + v.date + '</td><td><strong>' + v.name + '</strong></td><td class="comp-tag">' + (v.comp || '-') + '</td><td>' + v.mode + '</td><td>' + v.notes + '</td><td class="num" style="color:#ef4444; font-weight:bold;">₹' + v.amt.toFixed(2) + '</td><td><button class="btn-del" onclick="delAdv(\'' + v._key + '\')">X</button></td></tr>';
+      }
+      if (arr.length > 0) {
+        tbody.innerHTML += '<tr style="background:#131f3f;"><td colspan="5"><strong>TOTAL ADVANCE DEBIT:</strong></td><td class="num" style="color:#ef4444; font-weight:bold; font-size:13px;">₹' + totalAdv.toFixed(2) + '</td><td></td></tr>';
+      }
+    }
+
+    function delAdv(key) {
+      if (confirm('Delete advance entry?')) db.ref('advances/' + key).remove();
+    }
+
+    // PAYROLL
+    function pullStaffMonthData() {
+      var m = document.getElementById('s_month').value;
+      var name = document.getElementById('s_staff_select').value;
+      if (!name) return;
+
+      var staffObj = null;
+      for (var k in staffDirectory) {
+        if (staffDirectory[k].name === name) { staffObj = staffDirectory[k]; break; }
+      }
+
+      if (staffObj) {
+        document.getElementById('s_type').value = staffObj.type;
+        document.getElementById('s_rate').value = staffObj.rate;
+        if (staffObj.comp) document.getElementById('s_comp').value = staffObj.comp;
+      }
+
+      var totalAdv = 0;
+      for (var aKey in advanceList) {
+        var adv = advanceList[aKey];
+        if (adv.name === name && (!m || (adv.date && adv.date.indexOf(m) === 0))) {
+          totalAdv += Number(adv.amt);
+        }
+      }
+      document.getElementById('s_tot_adv').value = totalAdv;
+
+      var daysCount = 0;
+      var otHours = 0;
+      for (var attKey in attendanceList) {
+        var att = attendanceList[attKey];
+        if (att.name === name && (!m || (att.date && att.date.indexOf(m) === 0))) {
+          if (att.status === 'Present') daysCount += 1;
+          else if (att.status === 'Half Day') daysCount += 0.5;
+          otHours += Number(att.ot || 0);
+        }
+      }
+      if (daysCount > 0) document.getElementById('s_days').value = daysCount;
+      document.getElementById('s_ot_hours').value = otHours;
+
+      var otRate = (staffObj && staffObj.otRate) ? Number(staffObj.otRate) : 0;
+      document.getElementById('s_ot_pay').value = (otHours * otRate).toFixed(2);
+      calcSalary();
+    }
+
+    function calcSalary() {
+      var type = document.getElementById('s_type').value;
+      var rate = parseFloat(document.getElementById('s_rate').value) || 0;
+      var days = parseFloat(document.getElementById('s_days').value) || 0;
+      var otPay = parseFloat(document.getElementById('s_ot_pay').value) || 0;
+      var adv = parseFloat(document.getElementById('s_tot_adv').value) || 0;
+
+      var gross = (type === 'Fixed') ? ((rate / 30) * days) : (rate * days);
+      var net = (gross + otPay) - adv;
+      document.getElementById('s_net_pay').value = '₹' + net.toFixed(2);
+    }
+
+    function savePayrollSettlement() {
+      var m = document.getElementById('s_month').value;
+      var name = document.getElementById('s_staff_select').value;
+      var comp = document.getElementById('s_comp').value;
+      var type = document.getElementById('s_type').value;
+      var rate = parseFloat(document.getElementById('s_rate').value) || 0;
+      var days = parseFloat(document.getElementById('s_days').value) || 0;
+      var otPay = parseFloat(document.getElementById('s_ot_pay').value) || 0;
+      var adv = parseFloat(document.getElementById('s_tot_adv').value) || 0;
+      var payMode = document.getElementById('s_pay_mode').value;
+      var notes = document.getElementById('s_notes').value || '-';
+
+      if (!m || !name || rate <= 0) { alert('Enter month, staff and rate'); return; }
+
+      var gross = (type === 'Fixed') ? ((rate / 30) * days) : (rate * days);
+      var net = (gross + otPay) - adv;
+
+      db.ref('payroll').push({
+        month: m, name: name, comp: comp, type: type,
+        rate: rate, days: days, otPay: otPay, adv: adv, gross: gross, net: net,
+        payMode: payMode, notes: notes
+      });
+
+      document.getElementById('s_notes').value = '';
+      alert('Salary Settlement Saved!');
+    }
+
+    function renderPayrollTable() {
+      var tbody = document.getElementById('payroll_rows');
+      tbody.innerHTML = '';
+      var fMonth = document.getElementById('filter_payroll_month').value;
+
+      var arr = [];
+      for (var k in payrollList) {
+        var obj = payrollList[k];
+        obj._key = k;
+        if (!fMonth || obj.month === fMonth) arr.push(obj);
+      }
+      sortArrayByDate(arr, 'month');
+
+      for (var i = 0; i < arr.length; i++) {
+        var p = arr[i];
+        tbody.innerHTML += '<tr><td>' + p.month + '</td><td class="comp-tag">' + (p.comp || '-') + '</td><td><strong>' + p.name + '</strong></td><td class="num">' + p.days + '</td><td class="num">₹' + p.gross.toFixed(2) + '</td><td class="num" style="color:#ef4444;">₹' + p.adv.toFixed(2) + '</td><td class="num" style="color:#10b981;">₹' + p.net.toFixed(2) + '</td><td><strong>' + (p.payMode || 'Cash') + '</strong></td><td>' + p.notes + '</td><td><button class="btn-del" onclick="delPayroll(\'' + p._key + '\')">X</button></td></tr>';
+      }
+    }
+
+    function delPayroll(key) {
+      if (confirm('Delete settlement record?')) db.ref('payroll/' + key).remove();
+    }
+
+    // 8. COMPANY FLOW & EXPENSES
+    function saveClientReceipt() {
+      var d = document.getElementById('cr_date').value;
+      var comp = document.getElementById('cr_comp').value;
+      var amt = parseFloat(document.getElementById('cr_amt').value) || 0;
+      var mode = document.getElementById('cr_mode').value;
+      var notes = document.getElementById('cr_notes').value || '-';
+
+      if (!d || !comp || amt <= 0) { alert('Enter date, company and received amount'); return; }
+
+      db.ref('client_receipts').push({ date: d, comp: comp, amt: amt, mode: mode, notes: notes });
+      document.getElementById('cr_amt').value = '';
+      document.getElementById('cr_notes').value = '';
+      alert('Client Receipt Recorded!');
+    }
+
+    function saveExp() {
+      var d = document.getElementById('e_date').value;
+      var comp = document.getElementById('e_comp').value;
+      var cat = document.getElementById('e_cat').value;
+      var desc = document.getElementById('e_desc').value || '-';
+      var amt = parseFloat(document.getElementById('e_amt').value) || 0;
+
+      if (!d || !comp || amt <= 0) { alert('Enter date, company and expense amount'); return; }
+
+      db.ref('expenses').push({ date: d, comp: comp, cat: cat, desc: desc, amt: amt });
+      document.getElementById('e_amt').value = '';
+      document.getElementById('e_desc').value = '';
+      alert('Site Expense Saved!');
+    }
+
+    function renderCompanyFlowTables() {
+      var tbodyOut = document.getElementById('company_summary_rows');
+      if (tbodyOut) {
+        tbodyOut.innerHTML = '';
+        for (var ck in companies) {
+          var cName = companies[ck].name;
+          var totalGross = 0;
+          var totalNet = 0;
+
+          for (var uk in unitsList) {
+            var u = unitsList[uk];
+            if (u.comp === cName) {
+              var uQty = Number(u.units || 0);
+              var uRate = Number(u.rate || 60);
+              var calculatedGross = u.gross ? Number(u.gross) : (uQty * uRate);
+              var calculatedNet = u.net ? Number(u.net) : (calculatedGross - (calculatedGross * 0.01));
+              totalGross += calculatedGross;
+              totalNet += calculatedNet;
+            }
+          }
+
+          for (var fk in fixedList) {
+            var f = fixedList[fk];
+            if (f.comp === cName) {
+              var fGross = Number(f.gross || 0);
+              var fTdsPct = Number(f.tdsPct || 1);
+              var fNet = f.net ? Number(f.net) : (fGross - (fGross * (fTdsPct / 100)));
+              totalGross += fGross;
+              totalNet += fNet;
+            }
+          }
+
+          var totalTds = totalGross - totalNet;
+          var totalRec = 0;
+          for (var rk in clientReceipts) {
+            if (clientReceipts[rk].comp === cName) totalRec += Number(clientReceipts[rk].amt || 0);
+          }
+          var due = totalNet - totalRec;
+
+          tbodyOut.innerHTML += '<tr>' +
+            '<td><strong>' + cName + '</strong></td>' +
+            '<td>' + companies[ck].type + '</td>' +
+            '<td class="num" style="color:#f59e0b; font-weight:bold;">₹' + totalGross.toLocaleString('en-IN', {minimumFractionDigits:2}) + '</td>' +
+            '<td class="num" style="color:#cbd5e1;">₹' + totalTds.toLocaleString('en-IN', {minimumFractionDigits:2}) + '</td>' +
+            '<td class="num" style="color:#38bdf8; font-weight:bold;">₹' + totalNet.toLocaleString('en-IN', {minimumFractionDigits:2}) + '</td>' +
+            '<td class="num" style="color:#10b981;">₹' + totalRec.toLocaleString('en-IN', {minimumFractionDigits:2}) + '</td>' +
+            '<td class="num" style="color:#ef4444; font-weight:bold; font-size:13.5px;">₹' + due.toLocaleString('en-IN', {minimumFractionDigits:2}) + '</td>' +
+          '</tr>';
+        }
+      }
+
+      var tbodyRec = document.getElementById('receipts_rows');
+      if (tbodyRec) {
+        tbodyRec.innerHTML = '';
+        var arrR = [];
+        for (var rk in clientReceipts) {
+          var o = clientReceipts[rk]; o._key = rk; arrR.push(o);
+        }
+        sortArrayByDate(arrR, 'date');
+        for (var i = 0; i < arrR.length; i++) {
+          var r = arrR[i];
+          tbodyRec.innerHTML += '<tr><td>' + r.date + '</td><td class="comp-tag">' + r.comp + '</td><td>' + r.mode + '</td><td class="num" style="color:#10b981; font-weight:bold;">₹' + Number(r.amt).toFixed(2) + '</td><td>' + r.notes + '</td><td><button class="btn-del" onclick="delReceipt(\'' + r._key + '\')">X</button></td></tr>';
+        }
+      }
+
+      var tbodyExp = document.getElementById('expenses_rows');
+      if (tbodyExp) {
+        tbodyExp.innerHTML = '';
+        var arrE = [];
+        for (var ek in expList) {
+          var o = expList[ek]; o._key = ek; arrE.push(o);
+        }
+        sortArrayByDate(arrE, 'date');
+        for (var j = 0; j < arrE.length; j++) {
+          var e = arrE[j];
+          tbodyExp.innerHTML += '<tr><td>' + e.date + '</td><td class="comp-tag">' + e.comp + '</td><td>' + e.cat + '</td><td>' + e.desc + '</td><td class="num" style="color:#ef4444; font-weight:bold;">₹' + Number(e.amt).toFixed(2) + '</td><td><button class="btn-del" onclick="delExp(\'' + e._key + '\')">X</button></td></tr>';
+        }
+      }
+    }
+
+    function delReceipt(key) {
+      if (confirm('Delete client payment record?')) db.ref('client_receipts/' + key).remove();
+    }
+
+    function delExp(key) {
+      if (confirm('Delete expense record?')) db.ref('expenses/' + key).remove();
+    }
+
+    // 9. AUTOMATIC PROFIT-SHARE CALCULATION LOGIC
+    function addPartner() {
+      var name = document.getElementById('new_part_name').value.trim();
+      var comp = document.getElementById('new_part_comp').value;
+      var share = parseFloat(document.getElementById('new_part_share').value) || 0;
+      var capital = parseFloat(document.getElementById('new_part_capital').value) || 0;
+      var type = document.getElementById('new_part_type').value;
+      var phone = document.getElementById('new_part_phone').value.trim();
+
+      if (!name || !comp) { alert('Please enter Partner Name and select Associated Company!'); return; }
+
+      db.ref('partners').push({ name: name, comp: comp, share: share, capital: capital, type: type, phone: phone });
+      document.getElementById('new_part_name').value = '';
+      document.getElementById('new_part_share').value = '';
+      document.getElementById('new_part_capital').value = '0';
+      document.getElementById('new_part_phone').value = '';
+      alert('Partner Profile with ' + comp + ' Share Saved Successfully!');
+    }
+
+    function populatePartnerSelect() {
+      var sel = document.getElementById('fp_partner_select');
+      if (!sel) return;
+      var current = sel.value;
+      sel.innerHTML = '<option value="">-- General / Owner Capital --</option>';
+      for (var k in partnersList) {
+        var p = partnersList[k];
+        var displayName = p.name + ' [' + (p.comp || 'General') + ' - ' + (p.share || 0) + '% Share]';
+        sel.innerHTML += '<option value="' + p.name + ' (' + p.comp + ')">' + displayName + '</option>';
+      }
+      if (current) sel.value = current;
+    }
+
+    function renderPartnersSummaryTable() {
+      var tbody = document.getElementById('partners_summary_rows');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      var companyNetProfits = {};
+      for (var ck in companies) {
+        var cName = companies[ck].name;
+        var compBilledNet = 0;
+        for (var uk in unitsList) {
+          if (unitsList[uk].comp === cName) compBilledNet += Number(unitsList[uk].net || 0);
+        }
+        for (var fk in fixedList) {
+          if (fixedList[fk].comp === cName) compBilledNet += Number(fixedList[fk].net || 0);
+        }
+
+        var compExp = 0;
+        for (var ek in expList) {
+          if (expList[ek].comp === cName) compExp += Number(expList[ek].amt || 0);
+        }
+
+        var compSalary = 0;
+        for (var pk in payrollList) {
+          if (payrollList[pk].comp === cName) compSalary += Number(payrollList[pk].net || 0);
+        }
+
+        var netProfit = compBilledNet - (compExp + compSalary);
+        companyNetProfits[cName] = netProfit > 0 ? netProfit : 0;
+      }
+
+      var summary = {};
+      for (var pk in partnersList) {
+        var part = partnersList[pk];
+        var pKey = part.name + '_' + (part.comp || 'General');
+        var compProfit = companyNetProfits[part.comp] || 0;
+        var autoShareAmt = (compProfit * (Number(part.share || 0) / 100));
+
+        summary[pKey] = {
+          _key: pk, name: part.name, comp: part.comp || 'General', share: part.share || 0,
+          compProfit: compProfit, autoShareAmt: autoShareAmt, transOut: 0
+        };
+      }
+
+      for (var fk in fpowerList) {
+        var tx = fpowerList[fk];
+        var pSelectVal = tx.partner;
+        for (var key in summary) {
+          var expectedTag = summary[key].name + ' (' + summary[key].comp + ')';
+          if (pSelectVal === expectedTag || pSelectVal === summary[key].name) {
+            if (tx.type === 'TRANSFER_OUT') summary[key].transOut += Number(tx.amt || 0);
+          }
+        }
+      }
+
+      var hasPartners = false;
+      var totalAutoShareSum = 0;
+      for (var k in summary) {
+        hasPartners = true;
+        var p = summary[k];
+        var duePayable = p.autoShareAmt - p.transOut;
+        totalAutoShareSum += p.autoShareAmt;
+
+        tbody.innerHTML += '<tr>' +
+          '<td><strong>' + p.name + '</strong></td>' +
+          '<td><span class="comp-tag">' + p.comp + '</span></td>' +
+          '<td class="num" style="color:#f59e0b; font-weight:bold; font-size:13px;">' + p.share + '%</td>' +
+          '<td class="num" style="color:#38bdf8;">₹' + p.compProfit.toLocaleString('en-IN', {minimumFractionDigits:2}) + '</td>' +
+          '<td class="num" style="color:#10b981; font-weight:bold;">₹' + p.autoShareAmt.toLocaleString('en-IN', {minimumFractionDigits:2}) + '</td>' +
+          '<td class="num" style="color:#f87171;">₹' + p.transOut.toLocaleString('en-IN', {minimumFractionDigits:2}) + '</td>' +
+          '<td class="num" style="color:#38bdf8; font-weight:bold; font-size:13px;">₹' + duePayable.toLocaleString('en-IN', {minimumFractionDigits:2}) + '</td>' +
+          '<td><button class="btn-del" onclick="delPartner(\'' + p._key + '\')">Delete</button></td>' +
+        '</tr>';
+      }
+
+      document.getElementById('fp_stat_net').innerText = '₹' + totalAutoShareSum.toLocaleString('en-IN', {minimumFractionDigits:2});
+
+      if (!hasPartners) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:14px;">No partners registered yet. Add partners above.</td></tr>';
+      }
+    }
+
+    function delPartner(key) {
+      if (confirm('Delete this partner profile?')) db.ref('partners/' + key).remove();
+    }
+
+    function saveFPowerEntry() {
+      var d = document.getElementById('fp_date').value;
+      var partner = document.getElementById('fp_partner_select').value || 'Owner General';
+      var type = document.getElementById('fp_type').value;
+      var amt = parseFloat(document.getElementById('fp_amt').value) || 0;
+      var mode = document.getElementById('fp_mode').value;
+      var desc = document.getElementById('fp_desc').value.trim() || '-';
+
+      if (!d || amt <= 0) { alert('Please enter valid Date and Amount for transaction!'); return; }
+
+      db.ref('fpower').push({ date: d, partner: partner, type: type, amt: amt, mode: mode, desc: desc });
+      document.getElementById('fp_amt').value = '';
+      document.getElementById('fp_desc').value = '';
+      alert('Transaction Saved Successfully!');
+    }
+
+    function renderFPowerTables() {
+      var tbody = document.getElementById('fpower_rows');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      var arr = [];
+      for (var k in fpowerList) {
+        var obj = fpowerList[k];
+        obj._key = k;
+        arr.push(obj);
+      }
+
+      sortArrayByDate(arr, 'date');
+
+      var totalIn = 0;
+      var totalOut = 0;
+
+      for (var i = 0; i < arr.length; i++) {
+        var item = arr[i];
+        var isFundIn = (item.type === 'FUND_IN');
+        var inVal = isFundIn ? Number(item.amt || 0) : 0;
+        var outVal = !isFundIn ? Number(item.amt || 0) : 0;
+
+        totalIn += inVal;
+        totalOut += outVal;
+
+        var typeBadge = isFundIn ? '<span style="color:#34d399; font-weight:bold;">🟢 Capital In</span>' :
+                        (item.type === 'TRANSFER_OUT' ? '<span style="color:#f87171; font-weight:bold;">🔴 Profit Transfer</span>' :
+                        '<span style="color:#fbbf24; font-weight:bold;">🟠 Direct Partner Expense</span>');
+
+        tbody.innerHTML += '<tr>' +
+          '<td>' + (i + 1) + '</td>' +
+          '<td>' + item.date + '</td>' +
+          '<td><strong style="color:#38bdf8;">' + (item.partner || 'Owner General') + '</strong></td>' +
+          '<td>' + typeBadge + '</td>' +
+          '<td>' + (item.mode || 'Bank Transfer') + '</td>' +
+          '<td class="num" style="color:#34d399; font-weight:bold;">' + (inVal > 0 ? '₹' + inVal.toFixed(2) : '-') + '</td>' +
+          '<td class="num" style="color:#f87171; font-weight:bold;">' + (outVal > 0 ? '₹' + outVal.toFixed(2) : '-') + '</td>' +
+          '<td>' + item.desc + '</td>' +
+          '<td><button class="btn-del" onclick="delFPower(\'' + item._key + '\')">X</button></td>' +
+        '</tr>';
+      }
+
+      document.getElementById('fp_stat_in').innerText = '₹' + totalIn.toLocaleString('en-IN', {minimumFractionDigits:2});
+      document.getElementById('fp_stat_out').innerText = '₹' + totalOut.toLocaleString('en-IN', {minimumFractionDigits:2});
+
+      if (arr.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:#94a3b8; padding:16px;">No transactions recorded yet.</td></tr>';
+      }
+    }
+
+    function delFPower(key) {
+      if (confirm('Delete this transaction?')) db.ref('fpower/' + key).remove();
+    }
+
+    // UNITS MATH
+    function runUnitMath() {
+      var u = parseFloat(document.getElementById('u_val').value) || 0;
+      var r = parseFloat(document.getElementById('u_rate').value) || 0;
+      var gstPct = parseFloat(document.getElementById('u_gst_pct').value) || 0;
+
+      var baseValue = u * r;
+      var gstAmount = baseValue * (gstPct / 100);
+      var gross = baseValue + gstAmount;
+      var net = gross - (baseValue * 0.01);
+
+      document.getElementById('u_gross').value = gross.toFixed(2);
+      document.getElementById('u_net').value = net.toFixed(2);
+    }
+
+    function saveUnit() {
+      var d = document.getElementById('u_date').value;
+      var c = (currentUserRole === 'client' && currentUserComp) ? currentUserComp : document.getElementById('u_comp').value;
+      var u = parseFloat(document.getElementById('u_val').value) || 0;
+      var r = parseFloat(document.getElementById('u_rate').value) || 60;
+      var gstPct = parseFloat(document.getElementById('u_gst_pct').value) || 0;
+      var notes = document.getElementById('u_notes').value || '-';
+
+      if (!d || u <= 0) { alert('Enter valid date & units'); return; }
+
+      var baseValue = u * r;
+      var gstAmount = baseValue * (gstPct / 100);
+      var gross = baseValue + gstAmount;
+      var net = gross - (baseValue * 0.01);
+
+      db.ref('units').push({
+        date: d, comp: c, units: u, rate: r, gstPct: gstPct,
+        gstAmt: gstAmount, gross: gross, net: net, notes: notes
+      });
+
+      document.getElementById('u_notes').value = '';
+      document.getElementById('u_val').value = '';
+      alert('Units Saved Successfully!');
+    }
+
+    function renderUnitsTable() {
+      var tbody = document.getElementById('units_rows');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      var fMonth = document.getElementById('u_filter_month').value;
+
+      var arr = [];
+      for (var k in unitsList) {
+        var obj = unitsList[k];
+        obj._key = k;
+        if (currentUserRole === 'client' && currentUserComp && obj.comp !== currentUserComp) continue;
+        if (!fMonth || (obj.date && obj.date.indexOf(fMonth) === 0)) arr.push(obj);
+      }
+      sortArrayByDate(arr, 'date');
+
+      for (var i = 0; i < arr.length; i++) {
+        var x = arr[i];
+        var grossVal = x.gross ? Number(x.gross) : (Number(x.units || 0) * (Number(x.rate) || 60));
+        tbody.innerHTML += '<tr><td>' + x.date + '</td><td class="comp-tag">' + x.comp + '</td><td class="num">' + x.units + '</td><td class="num" style="color:#f59e0b;">' + grossVal.toFixed(2) + '</td><td class="num" style="color:#38bdf8; font-weight:bold;">' + Number(x.net).toFixed(2) + '</td><td>' + x.notes + '</td><td><button class="btn-del" onclick="delUnit(\'' + x._key + '\')">X</button></td></tr>';
+      }
+    }
+
+    function delUnit(key) {
+      if (confirm('Delete entry?')) db.ref('units/' + key).remove();
+    }
+
+    // FIXED BILLING
+    function runFixedMath() {
+      var g = parseFloat(document.getElementById('f_gross').value) || 0;
+      var p = parseFloat(document.getElementById('f_tds_pct').value) || 0;
+      var net = g - (g * (p / 100));
+      document.getElementById('f_net').value = net.toFixed(2);
+    }
+
+    function saveFixed() {
+      var d = document.getElementById('f_date').value;
+      var c = document.getElementById('f_comp').value;
+      var g = parseFloat(document.getElementById('f_gross').value) || 0;
+      var p = parseFloat(document.getElementById('f_tds_pct').value) || 0;
+      var notes = document.getElementById('f_notes').value || '-';
+
+      if (!d || g <= 0) { alert('Enter valid date & amount'); return; }
+
+      var net = g - (g * (p / 100));
+      db.ref('fixed').push({ date: d, comp: c, gross: g, tdsPct: p, net: net, notes: notes });
+      document.getElementById('f_notes').value = '';
+      alert('Fixed Entry Saved!');
+    }
+
+    function renderFixedTable() {
+      var tbody = document.getElementById('fixed_rows');
+      tbody.innerHTML = '';
+      var fMonth = document.getElementById('f_filter_month').value;
+
+      var arr = [];
+      for (var k in fixedList) {
+        var obj = fixedList[k];
+        obj._key = k;
+        if (!fMonth || (obj.date && obj.date.indexOf(fMonth) === 0)) arr.push(obj);
+      }
+      sortArrayByDate(arr, 'date');
+
+      for (var i = 0; i < arr.length; i++) {
+        var x = arr[i];
+        tbody.innerHTML += '<tr><td>' + x.date + '</td><td class="comp-tag">' + x.comp + '</td><td class="num" style="color:#f59e0b;">' + Number(x.gross).toFixed(2) + '</td><td class="num" style="color:#38bdf8; font-weight:bold;">' + Number(x.net).toFixed(2) + '</td><td>' + x.notes + '</td><td><button class="btn-del" onclick="delFixed(\'' + x._key + '\')">X</button></td></tr>';
+      }
+    }
+
+    function delFixed(key) {
+      if (confirm('Delete entry?')) db.ref('fixed/' + key).remove();
+    }
+
+    // STORE
+    function saveStoreItem() {
+      var d = document.getElementById('st_date').value;
+      var comp = (currentUserRole === 'client' && currentUserComp) ? currentUserComp : document.getElementById('st_comp').value;
+      var type = document.getElementById('st_type').value;
+      var item = document.getElementById('st_item').value.trim();
+      var qty = parseFloat(document.getElementById('st_qty').value) || 0;
+      var unit = document.getElementById('st_unit').value;
+      var cost = parseFloat(document.getElementById('st_cost').value) || 0;
+      var notes = document.getElementById('st_notes').value || '-';
+
+      if (!d || !comp || !item || qty <= 0) { alert('Enter date, company, item and quantity'); return; }
+
+      db.ref('store').push({ date: d, comp: comp, type: type, item: item, qty: qty, unit: unit, cost: cost, notes: notes });
+      document.getElementById('st_item').value = '';
+      document.getElementById('st_qty').value = '';
+      document.getElementById('st_cost').value = '';
+      document.getElementById('st_notes').value = '';
+      alert('Stock Movement Saved!');
+    }
+
+    function renderStoreTables() {
+      var tbodyLog = document.getElementById('store_log_rows');
+      var tbodyInv = document.getElementById('inventory_rows');
+      if (!tbodyLog || !tbodyInv) return;
+      tbodyLog.innerHTML = '';
+      tbodyInv.innerHTML = '';
+
+      var inventory = {};
+      var arr = [];
+      for (var k in storeList) {
+        var obj = storeList[k];
+        obj._key = k;
+        if (currentUserRole === 'client' && currentUserComp && obj.comp !== currentUserComp) continue;
+        arr.push(obj);
+      }
+      sortArrayByDate(arr, 'date');
+
+      for (var i = 0; i < arr.length; i++) {
+        var s = arr[i];
+        var itemKey = (s.comp || 'General') + '_' + s.item.toLowerCase();
+        if (!inventory[itemKey]) {
+          inventory[itemKey] = { comp: s.comp || '-', name: s.item, inQty: 0, outQty: 0, unit: s.unit };
+        }
+        if (s.type === 'IN') inventory[itemKey].inQty += Number(s.qty);
+        else inventory[itemKey].outQty += Number(s.qty);
+
+        tbodyLog.innerHTML += '<tr><td>' + s.date + '</td><td class="comp-tag">' + (s.comp || '-') + '</td><td style="color:' + (s.type === 'IN' ? '#10b981' : '#ef4444') + '; font-weight:bold;">' + s.type + '</td><td><strong>' + s.item + '</strong></td><td class="num">' + s.qty + ' ' + s.unit + '</td><td class="num">' + (s.cost ? '₹' + s.cost : '-') + '</td><td>' + s.notes + '</td><td><button class="btn-del" onclick="delStore(\'' + s._key + '\')">X</button></td></tr>';
+      }
+
+      for (var key in inventory) {
+        var item = inventory[key];
+        var bal = item.inQty - item.outQty;
+        tbodyInv.innerHTML += '<tr><td class="comp-tag">' + item.comp + '</td><td><strong>' + item.name + '</strong></td><td class="num">' + item.inQty + '</td><td class="num">' + item.outQty + '</td><td class="num" style="color:#f59e0b; font-weight:bold; font-size:13.5px;">' + bal + '</td><td>' + item.unit + '</td></tr>';
+      }
+    }
+
+    function delStore(key) {
+      if (confirm('Delete item entry?')) db.ref('store/' + key).remove();
+    }
+
+    // COMPANIES
+    function addCompany() {
+      var name = document.getElementById('new_c_name').value.trim();
+      var type = document.getElementById('new_c_type').value;
+      if (!name) { alert('Enter company name'); return; }
+
+      db.ref('companies').push({ name: name, type: type });
+      document.getElementById('new_c_name').value = '';
+      alert('Company Added!');
+    }
+
+    function renderCompanyTable() {
+      var tbody = document.getElementById('company_rows');
+      tbody.innerHTML = '';
+      var idx = 1;
+      for (var k in companies) {
+        tbody.innerHTML += '<tr><td>' + idx + '</td><td><strong>' + companies[k].name + '</strong></td><td>' + companies[k].type + '</td><td><button class="btn-del" onclick="delCompany(\'' + k + '\')">Delete</button></td></tr>';
+        idx++;
+      }
+    }
+
+    function delCompany(key) {
+      if (confirm('Delete company?')) db.ref('companies/' + key).remove();
+    }
+
+    // DASHBOARD STATS REFRESH
+    function clearDashFilter() {
+      document.getElementById('dash_filter_month').value = '';
+      refreshStats();
+    }
+
+    function refreshStats() {
+      var dMonth = document.getElementById('dash_filter_month').value;
+      var curCalendarMonth = new Date().toISOString().substring(0, 7);
+
+      var totU = 0, curMonthU = 0;
+      var totGrossBilled = 0, totNetBilled = 0;
+      var monthlySummaryMap = {};
+
+      for (var k in unitsList) {
+        var u = unitsList[k];
+        var mKey = (u.date && u.date.length >= 7) ? u.date.substring(0, 7) : 'Unknown';
+        var uGross = u.gross ? Number(u.gross) : (Number(u.units || 0) * (Number(u.rate) || 60));
+        var uNet = Number(u.net || 0);
+
+        if (mKey === curCalendarMonth) curMonthU += Number(u.units || 0);
+
+        if (!dMonth || mKey === dMonth) {
+          totU += Number(u.units || 0);
+          totGrossBilled += uGross;
+          totNetBilled += uNet;
+        }
+
+        if (!monthlySummaryMap[mKey]) monthlySummaryMap[mKey] = { units: 0, gross: 0, net: 0 };
+        monthlySummaryMap[mKey].units += Number(u.units || 0);
+        monthlySummaryMap[mKey].gross += uGross;
+        monthlySummaryMap[mKey].net += uNet;
+      }
+
+      for (var j in fixedList) {
+        var f = fixedList[j];
+        var fMonthKey = (f.date && f.date.length >= 7) ? f.date.substring(0, 7) : 'Unknown';
+        var fGross = Number(f.gross || 0);
+        var fNet = Number(f.net || 0);
+
+        if (!dMonth || fMonthKey === dMonth) {
+          totGrossBilled += fGross;
+          totNetBilled += fNet;
+        }
+
+        if (!monthlySummaryMap[fMonthKey]) monthlySummaryMap[fMonthKey] = { units: 0, gross: 0, net: 0 };
+        monthlySummaryMap[fMonthKey].gross += fGross;
+        monthlySummaryMap[fMonthKey].net += fNet;
+      }
+
+      var totTdsCut = totGrossBilled - totNetBilled;
+
+      var totRec = 0;
+      for (var m in clientReceipts) {
+        var r = clientReceipts[m];
+        if (!dMonth || (r.date && r.date.indexOf(dMonth) === 0)) totRec += Number(r.amt || 0);
+      }
+
+      var totExpenses = 0;
+      for (var eKey in expList) {
+        var expObj = expList[eKey];
+        if (!dMonth || (expObj.date && expObj.date.indexOf(dMonth) === 0)) totExpenses += Number(expObj.amt || 0);
+      }
+
+      var totPayrollPaid = 0;
+      for (var pKey in payrollList) {
+        var payObj = payrollList[pKey];
+        if (!dMonth || (payObj.month && payObj.month.indexOf(dMonth) === 0)) totPayrollPaid += Number(payObj.net || 0);
+      }
+
+      var totAdvances = 0;
+      for (var aKey in advanceList) {
+        var advObj = advanceList[aKey];
+        if (!dMonth || (advObj.date && advObj.date.indexOf(dMonth) === 0)) totAdvances += Number(advObj.amt || 0);
+      }
+
+      var liveNetBalance = totRec - (totExpenses + totPayrollPaid + totAdvances);
+      var pendingDue = totNetBilled - totRec;
+
+      document.getElementById('d_net_balance').innerText = '₹' + liveNetBalance.toLocaleString('en-IN', {minimumFractionDigits:2});
+      document.getElementById('d_units').innerText = totU.toFixed(2);
+      document.getElementById('d_cur_month_units').innerText = curMonthU.toFixed(2);
+      document.getElementById('d_billed_gross').innerText = '₹' + totGrossBilled.toLocaleString('en-IN', {minimumFractionDigits:2});
+      document.getElementById('d_billed_tds').innerText = '₹' + totTdsCut.toLocaleString('en-IN', {minimumFractionDigits:2});
+      document.getElementById('d_billed_net').innerText = '₹' + totNetBilled.toLocaleString('en-IN', {minimumFractionDigits:2});
+      document.getElementById('d_received').innerText = '₹' + totRec.toLocaleString('en-IN', {minimumFractionDigits:2});
+      document.getElementById('d_pending').innerText = '₹' + pendingDue.toLocaleString('en-IN', {minimumFractionDigits:2});
+
+      var mTable = document.getElementById('dash_monthly_units_rows');
+      if (mTable) {
+        mTable.innerHTML = '';
+        var sortedMonths = Object.keys(monthlySummaryMap).sort().reverse();
+
+        for (var idx = 0; idx < sortedMonths.length; idx++) {
+          var monthStr = sortedMonths[idx];
+          var data = monthlySummaryMap[monthStr];
+          var monthTds = data.gross - data.net;
+
+          mTable.innerHTML += '<tr>' +
+            '<td><strong>📅 ' + monthStr + (monthStr === curCalendarMonth ? ' <span style="color:#10b981; font-size:11px;">(Current)</span>' : '') + '</strong></td>' +
+            '<td class="num" style="color:#f59e0b; font-weight:bold;">' + data.units.toFixed(2) + '</td>' +
+            '<td class="num" style="color:#f59e0b;">₹' + data.gross.toLocaleString('en-IN', {minimumFractionDigits:2}) + '</td>' +
+            '<td class="num" style="color:#cbd5e1;">₹' + monthTds.toLocaleString('en-IN', {minimumFractionDigits:2}) + '</td>' +
+            '<td class="num" style="color:#10b981; font-weight:bold; font-size:13px;">₹' + data.net.toLocaleString('en-IN', {minimumFractionDigits:2}) + '</td>' +
+          '</tr>';
+        }
+      }
+
+      var cTable = document.getElementById('dash_companies_rows');
+      if (cTable) {
+        cTable.innerHTML = '';
+        for (var c in companies) {
+          var name = companies[c].name;
+          var cGross = 0;
+          var cNet = 0;
+
+          for (var a in unitsList) {
+            if (unitsList[a].comp === name && (!dMonth || (unitsList[a].date && unitsList[a].date.indexOf(dMonth) === 0))) {
+              var ug = unitsList[a].gross ? Number(unitsList[a].gross) : (Number(unitsList[a].units || 0) * (Number(unitsList[a].rate) || 60));
+              cGross += ug;
+              cNet += Number(unitsList[a].net || 0);
+            }
+          }
+          for (var b in fixedList) {
+            if (fixedList[b].comp === name && (!dMonth || (fixedList[b].date && fixedList[b].date.indexOf(dMonth) === 0))) {
+              cGross += Number(fixedList[b].gross || 0);
+              cNet += Number(fixedList[b].net || 0);
+            }
+          }
+
+          var cTds = cGross - cNet;
+
+          var cRec = 0;
+          for (var rKey in clientReceipts) {
+            if (clientReceipts[rKey].comp === name && (!dMonth || (clientReceipts[rKey].date && clientReceipts[rKey].date.indexOf(dMonth) === 0))) {
+              cRec += Number(clientReceipts[rKey].amt || 0);
+            }
+          }
+
+          var cDue = cNet - cRec;
+
+          cTable.innerHTML += '<tr>' +
+            '<td><strong>' + name + '</strong></td>' +
+            '<td>' + companies[c].type + '</td>' +
+            '<td class="num" style="color:#f59e0b;">₹' + cGross.toFixed(2) + '</td>' +
+            '<td class="num" style="color:#cbd5e1;">₹' + cTds.toFixed(2) + '</td>' +
+            '<td class="num" style="color:#38bdf8; font-weight:bold;">₹' + cNet.toFixed(2) + '</td>' +
+            '<td class="num" style="color:#10b981;">₹' + cRec.toFixed(2) + '</td>' +
+            '<td class="num" style="color:#ef4444; font-weight:bold;">₹' + cDue.toFixed(2) + '</td>' +
+          '</tr>';
+        }
+      }
+    }
+
+    // Default Init
+    var savedLang = localStorage.getItem('adrock_lang') || 'en';
+    changeLanguage(savedLang);
+    setTodayDate();
+  </script>
+</body>
+</html>
